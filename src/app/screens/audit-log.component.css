@@ -1,0 +1,46 @@
+/* Audit Log — stat tiles, day-grouped rows, actor/kind chips, real pager */
+
+.al-tiles { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; margin-bottom: 1.3rem; }
+@media (max-width: 900px) { .al-tiles { grid-template-columns: repeat(2, 1fr); } }
+.al-tile { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); padding: 1.1rem 1.2rem; }
+.al-tile-ic { display: inline-grid; place-items: center; width: 40px; height: 40px; border-radius: 12px; margin-bottom: 0.8rem; }
+.al-tile-ic.tone-ai { background: var(--ai-bg); color: var(--ai-text); }
+.al-tile-ic.tone-good { background: var(--good-bg); color: var(--good-text); }
+.al-tile-ic.tone-warn { background: var(--warn-bg); color: var(--warn-text); }
+.al-tile-label { font-size: 0.84rem; font-weight: 600; color: var(--ink-soft); }
+.al-tile-val { font-size: 1.9rem; font-weight: 800; letter-spacing: -0.02em; color: var(--ink); margin-top: 0.3rem; font-variant-numeric: tabular-nums; }
+.al-tile-sub { font-size: 0.76rem; color: var(--ink-mute); margin-top: 0.25rem; }
+
+/* day section header */
+.al-day td { background: var(--surface-2); color: var(--ink-mute); font-size: 0.68rem; font-weight: 800;
+  text-transform: uppercase; letter-spacing: 0.06em; padding: 0.5rem 0.9rem; }
+
+/* actor cell: icon chip + name + kind label */
+.al-actor { display: inline-flex; align-items: center; gap: 0.6rem; }
+.al-actor-ic { display: inline-grid; place-items: center; width: 30px; height: 30px; border-radius: 9px; flex: none; }
+.al-actor-ic.tone-ai { background: var(--ai-bg); color: var(--ai-text); }
+.al-actor-ic.tone-good { background: var(--good-bg); color: var(--good-text); }
+.al-actor-ic.tone-warn { background: var(--warn-bg); color: var(--warn-text); }
+.al-actor-name { display: block; font-size: 0.86rem; font-weight: 700; color: var(--ink); }
+.al-actor-kind { display: block; font-size: 0.7rem; color: var(--ink-mute); margin-top: 0.05rem; }
+
+/* case-code entity, clickable through to Approvals — self-contained button reset
+   (not reusing Leads.css's .link-cell, which isn't loaded on this screen) */
+.al-entity-link { background: none; border: none; padding: 0; font: inherit; font-weight: 600; color: var(--ink);
+  cursor: pointer; text-align: left; }
+.al-entity-link:hover { color: var(--ai-text); text-decoration: underline; }
+
+.al-table td:last-child { width: 40px; }
+.al-kebab { width: 30px; height: 30px; border-radius: 8px; border: none; background: none;
+  color: var(--ink-mute); cursor: pointer; display: inline-flex; align-items: center; justify-content: center; }
+.al-kebab:hover { background: var(--surface-2); color: var(--ink); }
+
+/* pager */
+.al-pager { display: flex; align-items: center; gap: 0.35rem; }
+.al-pg-btn, .al-pg-num { min-width: 34px; height: 34px; border-radius: 9px; border: 1px solid var(--border-strong);
+  background: var(--surface); color: var(--ink-soft); font-size: 0.82rem; font-weight: 700; cursor: pointer;
+  display: inline-flex; align-items: center; justify-content: center; padding: 0 0.4rem; }
+.al-pg-btn:hover:not(:disabled), .al-pg-num:hover:not(.active) { background: var(--surface-2); border-color: var(--ai-border); color: var(--ink); }
+.al-pg-num.active { background: var(--ai); border-color: var(--ai); color: #fff; }
+.al-pg-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.al-pg-ellipsis { color: var(--ink-mute); padding: 0 0.15rem; font-weight: 700; }

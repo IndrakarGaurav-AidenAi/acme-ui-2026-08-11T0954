@@ -1,0 +1,13 @@
+<div class="p360-details">
+  @for (r of rows(); track r.label) {
+    <div class="p360-detail">
+      <div class="p360-detail-k">
+        @if (r.icon) {
+          <app-icon [name]="r.icon" [size]="12" />
+        }
+        {{ r.label }}
+      </div>
+      <div class="p360-detail-v">{{ r.value }}</div>
+    </div>
+  }
+</div>

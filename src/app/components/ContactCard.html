@@ -1,0 +1,11 @@
+@if (contact(); as contact) {
+  <app-card>
+    <div class="p360-card-head">
+      <span class="p360-card-title">Contact &amp; Registration</span>
+      @if (data().contactVerified) {
+        <app-pill tone="good" [dot]="true">Verified</app-pill>
+      }
+    </div>
+    <app-detail-grid [rows]="contact.rows" />
+  </app-card>
+}

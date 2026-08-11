@@ -1,0 +1,17 @@
+<div class="doc-viewer-page">
+  <div class="doc-viewer-head">
+    <span class="doc-viewer-title">{{ title }}</span>
+    <button class="btn ghost sm" (click)="close()">Close</button>
+  </div>
+  <div class="doc-viewer-body">
+    @if (isLoading()) {
+      <p class="muted-note">Loading the original document…</p>
+    }
+    @if (isError()) {
+      <p class="muted-note">Couldn't load this document — it may not have a real attachment on file.</p>
+    }
+    @if (doc(); as d) {
+      <app-pdf-highlight-viewer [url]="d.url" [matches]="d.matches" [maxWidth]="900"></app-pdf-highlight-viewer>
+    }
+  </div>
+</div>

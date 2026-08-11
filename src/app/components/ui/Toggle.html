@@ -1,0 +1,5 @@
+<button type="button" class="toggle {{ on() ? 'on' : '' }}" (click)="handleClick()" [attr.aria-pressed]="on()"
+  style="background: none; border: none; padding: 0">
+  <span class="sw"><i></i></span>
+  <ng-content />
+</button>

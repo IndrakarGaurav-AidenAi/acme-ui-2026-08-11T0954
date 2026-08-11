@@ -1,0 +1,23 @@
+<div>
+  <div class="page-head">
+    <h1>Reports <span class="page-info-ic" title="Export any analytics view as a shareable report for leadership."><app-icon name="help" [size]="13"></app-icon></span></h1>
+  </div>
+  <div [style.margin-bottom]="'1rem'">
+    <app-button (click)="generate()"><app-icon name="spark" [size]="14"></app-icon> Generate new report</app-button>
+  </div>
+  <div class="dtable-wrap">
+    <table class="dtable">
+      <thead><tr><th>Report</th><th>Generated</th><th>Format</th><th></th></tr></thead>
+      <tbody>
+        @for (r of store.reports(); track r.id) {
+          <tr>
+            <td class="strong">{{ r.name }}</td>
+            <td class="num">{{ r.date }}</td>
+            <td><app-pill tone="neutral">{{ r.format }}</app-pill></td>
+            <td><button class="btn text sm" [style.color]="'var(--ai-text)'" [style.font-weight]="700" (click)="downloadReport(r)">Download</button></td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+</div>

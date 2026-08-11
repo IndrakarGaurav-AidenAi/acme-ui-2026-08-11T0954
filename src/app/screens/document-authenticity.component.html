@@ -1,0 +1,310 @@
+@if (detail(); as d) {
+  <div>
+    <div class="page-head">
+      <div class="row-between">
+        <app-button variant="text" (click)="backToQueue()">← Back to queue</app-button>
+      </div>
+    </div>
+
+    <div class="da-detail-top">
+      <div class="da-detail-file">
+        <span class="da-detail-file-ic"><app-icon name="documents" [size]="18" /></span>
+        <div>
+          <div class="da-detail-file-name">{{ docSel()!.file ?? docSel()!.name }}</div>
+          <div class="da-detail-file-meta">{{ docSel()!.name }} · 3 Pages · Uploaded {{ d.ext.receivedAt }} by {{ d.ext.assignedTo ?? d.ext.source }}</div>
+        </div>
+      </div>
+      <div style="display: flex; gap: 0.7rem; align-items: center">
+        <button class="btn text sm" (click)="viewOriginal()">View original</button>
+        <app-button (click)="downloadReport()"><app-icon name="download" [size]="13" /> Download full report</app-button>
+      </div>
+    </div>
+
+    @if (detailDocs().length > 1) {
+      <div class="da-tabs" style="margin-bottom: 1rem">
+        <span class="muted-note" style="margin: 0 0.4rem 0 0; align-self: center">Check document:</span>
+        @for (dd of detailDocs(); track dd.name) {
+          <button class="da-tab" [class.active]="dd.name === docSel()!.name" (click)="selectDoc(dd)">
+            <span class="da-badge-dot" [style.background]="BUCKET_COLOR[bucketFor(dd)]" style="margin-right: 0.35rem"></span>
+            {{ dd.name }}
+          </button>
+        }
+      </div>
+    }
+
+    <div class="da-layout">
+      <app-card title="Document Preview">
+        <div class="da-preview-toolbar">
+          <span class="muted-note" style="margin: 0">Zoom</span>
+          <span class="da-preview-zoom">− 100% +</span>
+        </div>
+        <div class="da-preview-body">
+          @if (realDoc(); as rd) {
+            <div class="da-real-doc">
+              @if (rd.type.startsWith('image/')) {
+                <img [src]="rd.url" [alt]="docSel()!.name" />
+              } @else {
+                <iframe [src]="rd.url + '#view=FitH'" [title]="docSel()!.name"></iframe>
+              }
+            </div>
+          } @else {
+            <div class="da-thumbs">
+              @for (n of THUMB_PAGES; track n) {
+                <div class="da-thumb" [class.active]="n === 1">{{ n }}</div>
+              }
+              <div class="da-thumb add">+</div>
+            </div>
+            <div class="da-cert">
+              <div class="da-cert-seal">🇮🇳</div>
+              <div class="da-cert-head">Government of India<br />Registration Certificate</div>
+              @for (r of detailRows(); track r.k) {
+                <div class="da-cert-row" [class]="certRowClass(r)">
+                  <span class="k">{{ r.k }}</span>
+                  <span class="v">{{ r.v }}
+                    @if (certRowClass(r) === 'tampered') { <span class="da-badge-dot" style="background: var(--crit)"></span> }
+                    @if (certRowClass(r) === 'suspicious') { <span class="da-badge-dot" style="background: var(--warn)"></span> }
+                  </span>
+                </div>
+              }
+              <div class="da-legend">
+                <span><span class="da-badge-dot" style="background: var(--crit)"></span> Tampered / Edited</span>
+                <span><span class="da-badge-dot" style="background: var(--warn)"></span> Suspicious</span>
+                <span><span class="da-badge-dot" style="background: var(--good)"></span> Verified</span>
+              </div>
+            </div>
+          }
+        </div>
+      </app-card>
+
+      <app-card title="AI Analysis Summary">
+        <div class="da-stat-tiles">
+          <div class="da-stat-tile"><div class="da-stat-k">Overall Score</div><div class="da-stat-v">{{ analysis()!.overallScore }}/100</div></div>
+          <div class="da-stat-tile"><div class="da-stat-k">Risk Level</div><app-pill [tone]="STATUS_TONE[worst()]">{{ analysis()!.risk }}</app-pill></div>
+          <div class="da-stat-tile"><div class="da-stat-k">Confidence</div><div class="da-stat-v">{{ analysis()!.confidence }}%</div><div class="da-stat-cap">{{ confidenceCaption(analysis()!.confidence) }}</div></div>
+          <div class="da-stat-tile"><div class="da-stat-k">Checks Performed</div><div class="da-stat-v">{{ analysis()!.checks.length }}/{{ analysis()!.checks.length }}</div><div class="da-stat-cap">Completed</div></div>
+        </div>
+
+        <div class="da-tabs">
+          <button class="da-tab" [class.active]="detailTab() === 'all'" (click)="setDetailTab('all')">All Checks ({{ analysis()!.checks.length }})</button>
+          <button class="da-tab" [class.active]="detailTab() === 'issues'" (click)="setDetailTab('issues')">Issues ({{ detailIssues().length }})</button>
+          <button class="da-tab" [class.active]="detailTab() === 'passed'" (click)="setDetailTab('passed')">Passed ({{ detailPassed().length }})</button>
+        </div>
+
+        @for (c of visibleChecks(); track c.key) {
+          <div class="da-check">
+            <div class="da-check-head" (click)="toggleCheck(c.key)">
+              <span class="da-check-ic" [class]="c.status"><app-icon [name]="checkIcon(c.status)" [size]="15" /></span>
+              <div style="flex: 1">
+                <div class="da-check-label">{{ c.label }}</div>
+                <div class="da-check-sub">{{ c.sub }}</div>
+              </div>
+              <app-pill [tone]="STATUS_TONE[c.status]">{{ STATUS_LABEL[c.status] }}</app-pill>
+              <app-icon [name]="openCheck() === c.key ? 'chevronDown' : 'chevronRight'" [size]="13" />
+            </div>
+            @if (openCheck() === c.key) {
+              <div class="da-check-body">
+                <div class="da-check-grid">
+                  <div><div class="k">Page</div><div class="v">{{ c.detail.page }}</div></div>
+                  <div><div class="k">Location</div><div class="v">{{ c.detail.location }}</div></div>
+                  <div><div class="k">{{ c.status === 'passed' ? 'Finding' : 'Issue' }}</div><div class="v">{{ c.detail.issue }}</div></div>
+                  <div><div class="k">Confidence</div><div class="v">{{ c.detail.confidence }}%</div></div>
+                </div>
+              </div>
+            }
+          </div>
+        }
+      </app-card>
+
+      <div class="stack">
+        <app-card title="AI Verdict">
+          <div class="da-verdict">
+            <div class="da-verdict-ic" [class]="worst() === 'passed' ? 'good' : worst()">
+              <app-icon [name]="worst() === 'passed' ? 'check' : 'alert'" [size]="26" />
+            </div>
+            <div class="da-verdict-title">{{ verdictTitle() }}</div>
+            <p class="da-verdict-body">{{ verdictBody() }}</p>
+            <div class="da-verdict-rec">
+              <strong>Recommendation:</strong> {{ verdictRec() }}
+            </div>
+          </div>
+        </app-card>
+
+        <app-card title="Ask AI Copilot">
+          <div style="margin-bottom: 0.7rem">
+            @for (m of copilotMsgs(); track $index) {
+              <div class="da-copilot-msg" [class]="m.who">
+                <div class="da-copilot-bubble">
+                  {{ m.text }}
+                  @if (m.bullets) { <ul>@for (b of m.bullets; track b) { <li>{{ b }}</li> }</ul> }
+                </div>
+              </div>
+            }
+            @if (copilotMsgs().length === 0) { <p class="muted-note" style="margin-top: 0">Ask about any of the checks above.</p> }
+          </div>
+          <div class="da-chips">
+            <button class="da-chip" (click)="askExplainIssue()">Explain the issue</button>
+            <button class="da-chip" (click)="askQrValid()">Is the QR code valid?</button>
+          </div>
+          <form class="da-copilot-input" (submit)="$event.preventDefault(); onCopilotSubmit()">
+            <input class="input" [ngModel]="copilotDraft()" (ngModelChange)="copilotDraft.set($event)" name="copilotDraft" placeholder="Ask a follow-up question…" />
+            <app-button size="sm" type="submit"><app-icon name="send" [size]="13" /></app-button>
+          </form>
+        </app-card>
+      </div>
+    </div>
+  </div>
+} @else {
+  <div>
+    <div class="page-head">
+      <div class="row-between" style="align-items: flex-start">
+        <div style="display: flex; gap: 0.8rem">
+          <span class="ic-icon" style="width: 44px; height: 44px"><app-icon name="shield" [size]="20" /></span>
+          <div>
+            <h1 style="margin: 0">Document Authenticity <span class="page-info-ic" title="AI-powered authenticity and tamper checks across all documents received in the Intake Inbox."><app-icon name="help" [size]="13" /></span></h1>
+          </div>
+        </div>
+        <div style="display: flex; gap: 0.5rem; flex-wrap: wrap">
+          <button class="da-tab" [class.active]="tab() === 'all'" (click)="setTab('all')"><app-icon name="check" [size]="12" /> Auto-clear</button>
+          <button class="da-tab" [class.active]="tab() === 'flagged'" (click)="setTab('flagged')"><app-icon name="flag" [size]="12" /> Flagged</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="da-stat-tiles" style="grid-template-columns: repeat(5, 1fr); margin-bottom: 1.1rem">
+      <div class="da-stat-tile"><div class="da-stat-k">Leads with Documents</div><div class="da-stat-v">{{ items().length }}</div></div>
+      <div class="da-stat-tile"><div class="da-stat-k">Documents Received</div><div class="da-stat-v">{{ total() }}</div></div>
+      <div class="da-stat-tile"><div class="da-stat-k">Verified (All Good)</div><div class="da-stat-v" style="color: var(--good-text)">{{ counts().verified }}</div><div class="da-stat-cap">{{ pct(counts().verified, total()) }}% of total</div></div>
+      <div class="da-stat-tile"><div class="da-stat-k">Flagged (Possible Issues)</div><div class="da-stat-v" style="color: var(--crit-text)">{{ counts().flagged }}</div><div class="da-stat-cap">{{ pct(counts().flagged, total()) }}% of total</div></div>
+      <div class="da-stat-tile"><div class="da-stat-k">Pending Review</div><div class="da-stat-v" style="color: var(--warn-text)">{{ counts().pending }}</div><div class="da-stat-cap">{{ pct(counts().pending, total()) }}% of total</div></div>
+    </div>
+
+    <div class="an2-row3" style="align-items: start">
+      <app-card title="Leads &amp; Documents">
+        <div class="da-tabs">
+          @for (t of LEAD_TABS; track t) {
+            <button class="da-tab" [class.active]="tab() === t" (click)="setTab(t)">{{ leadTabLabel(t) }}</button>
+          }
+        </div>
+        <input class="input" placeholder="Search by email, lead, or document…" [ngModel]="query()" (ngModelChange)="onQueryChange($event)" name="query" style="margin-bottom: 0.8rem" />
+
+        @if (pageItems().length === 0) {
+          <p class="muted-note">No leads match this filter.</p>
+        } @else {
+          @for (row of pageItems(); track row.ext.id) {
+            <button class="da-lead-row" (click)="rowFirstDoc(row) && openDoc(row.ext, rowFirstDoc(row)!)">
+              <span class="da-lead-avatar">{{ row.ext.source.slice(0, 2).toUpperCase() }}</span>
+              <span style="flex: 1; min-width: 0; text-align: left">
+                <div class="da-lead-name">{{ row.ext.source }}</div>
+                <div class="da-lead-meta">{{ rowDocCount(row) }} document{{ rowDocCount(row) === 1 ? '' : 's' }} · {{ row.ext.receivedAt }}</div>
+              </span>
+              <app-pill [tone]="BUCKET_TONE[leadStatus(row)]" [dot]="true">{{ BUCKET_LABEL[leadStatus(row)] }}</app-pill>
+              <app-icon name="chevronRight" [size]="14" />
+            </button>
+          }
+        }
+
+        @if (filteredItems().length > 0) {
+          <div class="row-between" style="margin-top: 0.8rem">
+            <span class="muted-note" style="margin: 0">
+              Showing {{ showingFrom() }} to {{ showingTo() }} of {{ filteredItems().length }} results
+            </span>
+            <div style="display: flex; gap: 0.4rem">
+              <button class="btn ghost sm" [disabled]="page() <= 1" (click)="prevPage()">‹</button>
+              @for (p of pageNumbers(); track p) {
+                <button class="btn sm" [class]="p === page() ? 'primary' : 'ghost'" (click)="setPage(p)">{{ p }}</button>
+              }
+              <button class="btn ghost sm" [disabled]="page() >= pageCount()" (click)="nextPage()">›</button>
+            </div>
+          </div>
+        }
+      </app-card>
+
+      <div class="stack">
+        <app-card title="Verification Overview">
+          <div class="donut-wrap">
+            <div class="donut">
+              <svg viewBox="0 0 120 120" width="100%" height="100%">
+                <g transform="rotate(-90 60 60)">
+                  <circle [attr.cx]="60" [attr.cy]="60" [attr.r]="46" fill="none" stroke="var(--surface-3)" stroke-width="16" />
+                  @for (seg of donutSegments(); track seg.bucket) {
+                    <circle [attr.cx]="60" [attr.cy]="60" [attr.r]="46" fill="none" [attr.stroke]="BUCKET_COLOR[seg.bucket]" stroke-width="16"
+                      [attr.stroke-dasharray]="seg.len + ' ' + (donutCircumference - seg.len)" [attr.stroke-dashoffset]="seg.offset" stroke-linecap="butt" />
+                  }
+                </g>
+              </svg>
+              <div class="center"><span class="n">{{ total() }}</span><span class="c">Total</span></div>
+            </div>
+            <div class="donut-legend">
+              @for (b of BUCKET_ORDER; track b) {
+                <div class="row">
+                  <span class="sw" [style.background]="BUCKET_COLOR[b]"></span>
+                  <span class="nm">{{ BUCKET_LABEL[b] }}</span>
+                  <span class="vv">{{ counts()[b] }} ({{ pct(counts()[b], total()) }}%)</span>
+                </div>
+              }
+            </div>
+          </div>
+        </app-card>
+
+        <app-card title="Top Document Types">
+          @if (topTypes().length === 0) {
+            <p class="muted-note">No documents yet.</p>
+          } @else {
+            <div class="an2-ranked">
+              @for (t of topTypes(); track t[0]) {
+                <div class="an2-rank-row">
+                  <div class="an2-rank-top"><span class="nm">{{ t[0] }}</span><span class="vv">{{ t[1] }}</span></div>
+                  <div class="an2-rank-track"><div class="an2-rank-fill" [style.width.%]="barWidth(t[1])"></div></div>
+                </div>
+              }
+            </div>
+          }
+        </app-card>
+      </div>
+
+      <div class="stack">
+        <app-card title="Recent Flagged Documents">
+          @if (flaggedDocs().length === 0) {
+            <p class="muted-note">Nothing flagged right now.</p>
+          } @else {
+            @for (fd of flaggedDocs(); track fd.doc.name + fd.ext.id) {
+              <button class="da-flagged-row" (click)="openDoc(fd.ext, fd.doc)">
+                <span class="da-flagged-ic"><app-icon name="documents" [size]="15" /></span>
+                <span style="flex: 1; min-width: 0; text-align: left">
+                  <div class="da-flagged-name">{{ fd.doc.file ?? fd.doc.name }}</div>
+                  <div class="da-flagged-meta">{{ fd.ext.source }} · {{ fd.ext.receivedAt }}</div>
+                </span>
+                <app-pill tone="crit">{{ fd.tag }}</app-pill>
+              </button>
+            }
+          }
+        </app-card>
+
+        <app-card title="Document Health Trend (Last 7 Days)">
+          <div>
+            <svg viewBox="0 0 320 130" width="100%" [attr.height]="150">
+              @for (s of trendChart(); track s.label) {
+                <g>
+                  <polyline fill="none" [attr.stroke]="s.color" stroke-width="2" [attr.points]="s.points" />
+                  @for (c of s.circles; track $index) {
+                    <circle [attr.cx]="c.cx" [attr.cy]="c.cy" r="3" [attr.fill]="s.color" />
+                  }
+                </g>
+              }
+            </svg>
+            <div style="display: flex; justify-content: space-between; font-size: 0.64rem; color: var(--ink-mute); padding: 0 4px">
+              @for (l of trendLabels; track l) { <span>{{ l }}</span> }
+            </div>
+          </div>
+          <div style="display: flex; gap: 1rem; margin-top: 0.5rem; flex-wrap: wrap">
+            @for (b of BUCKET_ORDER; track b) {
+              <span class="donut-legend row" style="padding: 0">
+                <span class="sw" [style.background]="BUCKET_COLOR[b]"></span> <span class="nm">{{ BUCKET_LABEL[b] }}</span>
+              </span>
+            }
+          </div>
+        </app-card>
+      </div>
+    </div>
+  </div>
+}

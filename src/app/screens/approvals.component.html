@@ -1,0 +1,456 @@
+@if (openCase(); as c) {
+  <!-- ---------------- Case review ---------------- -->
+  <div>
+    <div class="page-head">
+      <div class="row-between">
+        <h1>Review · {{ c.code }} <span class="page-info-ic" [title]="c.partnerName + ' — ' + c.town + ', ' + c.state + ' · owned by ' + roleLabel(c.ownerRole)"><app-icon name="help" [size]="13" /></span></h1>
+        <app-button variant="text" (click)="backToQueue()">← Back to queue</app-button>
+      </div>
+    </div>
+
+    @if (cc(); as ccVal) {
+      @if (flagReasonResult(); as fr) {
+        <div class="cr-layout" [class.with-panel]="reviewCanApprove() && !isResolved()">
+          <div class="cr-main">
+            <div class="cr-hero">
+              <div class="cr-hero-col">
+                <div class="cr-hero-label"><app-icon name="help" [size]="12" /> AI RECOMMENDATION</div>
+                <div class="cr-hero-route">Route to {{ teamLabel() }}</div>
+                <app-pill tone="warn">Needs {{ teamLabel() }} Review</app-pill>
+              </div>
+              <div class="cr-hero-col center">
+                <div class="cr-hero-label">Confidence Score</div>
+                <div class="arc-gauge">
+                  <svg viewBox="0 0 120 70" width="140" height="82">
+                    <path d="M 10 62 A 50 50 0 0 1 110 62" fill="none" stroke="var(--surface-3)" stroke-width="10" stroke-linecap="round" pathLength="100" />
+                    <path d="M 10 62 A 50 50 0 0 1 110 62" fill="none" [attr.stroke]="arcGaugeTone(c.confidencePct)" stroke-width="10" stroke-linecap="round" pathLength="100" [attr.stroke-dasharray]="arcGaugeClamped(c.confidencePct) + ' 100'" />
+                  </svg>
+                  <div class="arc-gauge-value">{{ arcGaugeClamped(c.confidencePct) }}%</div>
+                </div>
+                <div class="arc-gauge-caption">
+                  {{ c.confidencePct >= 70 ? 'High Confidence' : c.confidencePct >= 50 ? 'Medium Confidence' : 'Low Confidence' }}
+                </div>
+              </div>
+              <div class="cr-hero-col">
+                <div class="cr-hero-label">Risk Level</div>
+                <app-pill [tone]="risk().tone">{{ risk().label }}</app-pill>
+                <p class="cr-hero-reason">{{ fr.summary }}</p>
+                <button class="cr-hero-toggle" (click)="traceOpen.set(!traceOpen())">{{ traceOpen() ? '▲ Hide details' : 'View details →' }}</button>
+              </div>
+            </div>
+            @if (traceOpen()) {
+              <app-agent-trace [lines]="fr.lines" />
+            }
+
+            @if (ccVal.financeSnapshot || ccVal.channelSnapshot) {
+              <app-card [title]="ccVal.financeSnapshot ? 'Financial Snapshot' : 'Channel Snapshot'">
+                <div class="cr-tiles">
+                  @if (ccVal.financeSnapshot; as fs) {
+                    <div class="cr-tile"><span class="cr-tile-ic"><app-icon name="documents" [size]="15" /></span>
+                      <div><div class="cr-tile-v">₹{{ fs.capitalAvailable }}L</div><div class="cr-tile-k">Capital Available</div><div class="cr-tile-cap" style="color: var(--ink-mute)">Available funds</div></div></div>
+                    <div class="cr-tile"><span class="cr-tile-ic"><app-icon name="target" [size]="15" /></span>
+                      <div><div class="cr-tile-v">₹{{ fs.requiredInvestment }}L</div><div class="cr-tile-k">Required Investment</div><div class="cr-tile-cap" style="color: var(--ink-mute)">Investment needed</div></div></div>
+                    <div class="cr-tile"><span class="cr-tile-ic"><app-icon name="alert" [size]="15" /></span>
+                      <div><div class="cr-tile-v">₹{{ fs.fundingGap }}L</div><div class="cr-tile-k">Funding Gap</div><div class="cr-tile-cap" style="color: var(--ink-mute)">Gap to close</div></div></div>
+                    <div class="cr-tile"><span class="cr-tile-ic"><app-icon name="analytics" [size]="15" /></span>
+                      <div><div class="cr-tile-v">{{ fs.readinessPct }}%</div><div class="cr-tile-k">Financial Readiness Score</div>
+                        <div class="cr-tile-cap" [style.color]="fs.readinessPct >= 100 ? 'var(--good-text)' : fs.readinessPct >= 70 ? 'var(--warn-text)' : 'var(--crit-text)'">
+                          {{ fs.readinessPct >= 100 ? 'Strong' : fs.readinessPct >= 70 ? 'Moderate' : 'Weak' }}
+                        </div></div></div>
+                  } @else if (ccVal.channelSnapshot; as cs) {
+                    <div class="cr-tile"><span class="cr-tile-ic"><app-icon name="target" [size]="15" /></span>
+                      <div><div class="cr-tile-v">{{ cs.score.toFixed(1) }}/10</div><div class="cr-tile-k">Coverage Score</div></div></div>
+                    <div class="cr-tile"><span class="cr-tile-ic"><app-icon name="target" [size]="15" /></span>
+                      <div><div class="cr-tile-v">{{ cs.threshold }}/10</div><div class="cr-tile-k">Required Threshold</div></div></div>
+                    <div class="cr-tile"><span class="cr-tile-ic"><app-icon name="alert" [size]="15" /></span>
+                      <div><div class="cr-tile-v">{{ cs.gap.toFixed(1) }}/10</div><div class="cr-tile-k">Coverage Gap</div></div></div>
+                    <div class="cr-tile"><span class="cr-tile-ic"><app-icon name="analytics" [size]="15" /></span>
+                      <div><div class="cr-tile-v">{{ cs.readinessPct }}%</div><div class="cr-tile-k">Channel Readiness Score</div></div></div>
+                  }
+                </div>
+              </app-card>
+            }
+
+            @if (insights().length > 0) {
+              <app-card title="AI Insights">
+                @for (ins of insights(); track ins.label) {
+                  <div class="cr-insight-row">
+                    <app-icon [name]="iconForTone(ins.tone)" [size]="14" />
+                    <span>{{ ins.label }}</span>
+                  </div>
+                }
+              </app-card>
+            }
+
+            <app-card title="Approval Journey">
+              <div class="cr-journey">
+                @for (s of journey(); track s.label) {
+                  <div class="cr-step" [class.done]="s.state === 'done'" [class.current]="s.state === 'current'" [class.pending]="s.state === 'pending'">
+                    <span class="cr-step-marker"><app-icon [name]="journeyIcon(s.state)" [size]="s.state === 'done' ? 14 : 13" /></span>
+                    <span class="cr-step-label">{{ s.label }}</span>
+                    <span class="cr-step-cap">{{ JOURNEY_CAPTION[s.state] }}</span>
+                  </div>
+                }
+              </div>
+            </app-card>
+
+            <app-card title="Follow up before deciding">
+              <div style="display: flex; gap: 0.5rem; flex-wrap: wrap">
+                @if (viewingAs() !== 'ase_asm') {
+                  <app-button variant="ghost" size="sm" (click)="openEmail('asm')"><app-icon name="mail" [size]="13" /> Email ASM</app-button>
+                }
+                <app-button variant="ghost" size="sm" (click)="discuss()"><app-icon name="comms" [size]="13" /> {{ discussLabel() }}</app-button>
+                <app-button variant="ghost" size="sm" (click)="openEmail('distributor')"><app-icon name="mail" [size]="13" /> Email {{ c.partnerName }}</app-button>
+                <app-button variant="ghost" size="sm" (click)="askCopilot()"><app-icon name="spark" [size]="13" /> Ask copilot: why flagged?</app-button>
+              </div>
+              @if (emailSentNote(); as note) {
+                <p class="muted-note" style="margin-top: 0.7rem; margin-bottom: 0"><app-icon name="check" [size]="12" /> {{ note }}</p>
+              }
+            </app-card>
+
+            @if (auditTrail().length > 0 || thread()) {
+              <app-card title="Case History &amp; Notes">
+                <p class="muted-note" style="margin-top: 0">
+                  {{ c.ownerRole === 'leadership'
+                    ? 'Everything logged on this case so far — chat with the ASM/distributor and every prior action — before you sign off.'
+                    : 'Chat and audit trail logged on this case so far.' }}
+                </p>
+                @if (thread(); as t) {
+                  @if (t.participants.length > 0) {
+                    <div class="cr-hist-chat">
+                      @for (m of t.participants; track m.id) {
+                        <div class="cr-hist-chat-row">
+                          <span class="cr-hist-chat-author">{{ m.authorName }} <span class="cr-hist-chat-role">({{ roleByCodeLabel(m.authorRole) }})</span></span>
+                          <span class="cr-hist-chat-body">{{ m.body }}</span>
+                        </div>
+                      }
+                    </div>
+                  }
+                }
+                @if (auditTrail().length > 0) {
+                  <div class="cr-hist-timeline">
+                    @for (a of auditTrail(); track $index) {
+                      <div class="cr-hist-item">
+                        <span class="cr-hist-dot" [class]="'cr-hist-dot tone-' + a.tone"></span>
+                        <div class="cr-hist-body">
+                          <div class="cr-hist-row"><span class="cr-hist-title">{{ a.title }}</span><span class="cr-hist-when">{{ a.when }}</span></div>
+                          <div class="cr-hist-by">{{ a.by }}</div>
+                        </div>
+                      </div>
+                    }
+                  </div>
+                }
+              </app-card>
+            }
+
+            <app-card title="Note for Leadership">
+              @if (c.notesForLeadership && c.notesForLeadership.length > 0) {
+                <div class="cr-panel-attach" style="margin-bottom: 0.8rem">
+                  @for (n of c.notesForLeadership; track $index; let last = $last) {
+                    <div [style.padding]="'0.5rem 0'" [style.border-bottom]="last ? 'none' : '1px solid var(--border)'">
+                      <div style="display: flex; justify-content: space-between; gap: 0.6rem">
+                        <strong style="font-size: 0.82rem">{{ n.author }}</strong>
+                        <span class="muted-note" style="margin: 0">{{ n.when }}</span>
+                      </div>
+                      <p style="margin: 0.2rem 0 0; font-size: 0.85rem">{{ n.body }}</p>
+                    </div>
+                  }
+                </div>
+              }
+              <p class="muted-note" style="margin-top: 0">Add context Leadership should know about this case before it reaches their sign-off.</p>
+              <textarea class="input" rows="2" placeholder="e.g. ASM vouches for this distributor despite the shortfall — recommend conditional approval…"
+                [ngModel]="leadershipNote()" (ngModelChange)="leadershipNote.set($event)" style="width: 100%; resize: vertical"></textarea>
+              <div style="display: flex; justify-content: flex-end; margin-top: 0.6rem">
+                <app-button variant="ghost" size="sm" (click)="sendLeadershipNote()" [disabled]="!leadershipNote().trim()">Send note</app-button>
+              </div>
+              @if (leadershipSentNote(); as note) {
+                <p class="muted-note" style="margin: 0"><app-icon name="check" [size]="12" /> {{ note }}</p>
+              }
+            </app-card>
+
+            @if (c.subtype === 'replacement') {
+              <div class="gate-callout">
+                <span class="flag">Gate</span>
+                <p><strong>Replacement DB:</strong> the Distributor Disengagement Recommendation Form for the old DB is required before approval can proceed — filled in by the ASE/ASM at Create Lead time.
+                  @if (linked()) {
+                    <span> ✓ Submitted. <button class="btn ghost sm" style="margin-left: 0.5rem" (click)="discFormOpen.set(true)">View Disengagement Form</button></span>
+                  } @else {
+                    <span> Not yet submitted — <button class="btn ghost sm" style="margin-left: 0.25rem" (click)="openEmail('asm')">Email ASM</button> to have them fill it in from Create Lead / Intake Review.</span>
+                  }
+                </p>
+              </div>
+            }
+
+            @if (linked()) {
+              <app-disengagement-form-modal [open]="discFormOpen()" (closed)="discFormOpen.set(false)" [readOnly]="true" [existing]="c.discontinuationForm" (submitted)="discFormOpen.set(false)" />
+            }
+
+            @if (ccVal.financeSnapshot; as fs2) {
+              <app-card title="Financials Verification">
+                <p class="muted-note" style="margin-top: 0">
+                  Checked against the distributor's bank statement — the recommendation form's two financial fields, not a generic document stack.
+                </p>
+                <div class="cr-fin-rows">
+                  <div class="cr-fin-row"><span>Total Own Funds / Borrowed (₹L)</span><b>{{ fs2.ownFunds }}</b></div>
+                  <div class="cr-fin-row"><span>CC Limit (₹L)</span><b>{{ fs2.ccLimit }}</b></div>
+                  <div class="cr-fin-row total">
+                    <span>Total Available vs Required</span>
+                    <b [class.crit]="fs2.fundingGap > 0" [class.good]="fs2.fundingGap <= 0">
+                      ₹{{ fs2.capitalAvailable }}L / ₹{{ fs2.requiredInvestment }}L
+                    </b>
+                  </div>
+                </div>
+
+                <div style="margin-top: 0.9rem; display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap">
+                  <app-icon [name]="bankStatementDoc() ? 'check' : 'documents'" [size]="14" />
+                  <span style="font-weight: 700; color: var(--ink)">Bank Statement</span>
+                  <app-pill tone="crit">Required</app-pill>
+                  @if (bankStatementDoc(); as bsd) {
+                    <span class="muted-note" style="margin: 0; color: var(--good-text)">
+                      <app-icon name="check" [size]="12" /> Uploaded: {{ bsd.name }}
+                      <button class="btn text sm" style="margin-left: 0.4rem; padding: 0" (click)="viewBankStatement()">View</button>
+                      @if (canAct()) {
+                        <button class="btn text sm" style="margin-left: 0.4rem; padding: 0" (click)="triggerBankStatementUpload()">Replace</button>
+                      }
+                    </span>
+                  } @else {
+                    <app-button variant="ghost" size="sm" [disabled]="!canAct()" (click)="triggerBankStatementUpload()">
+                      <app-icon name="documents" [size]="13" /> Upload document
+                    </app-button>
+                  }
+                  <input #bankStatementFileInput type="file" style="display: none" (change)="onPickFile($event)" />
+                </div>
+
+                @if (financeGateBlocked()) {
+                  <p class="muted-note" style="margin: 0.7rem 0 0; color: var(--warn-text)"><app-icon name="alert" [size]="12" /> Not yet uploaded — you can still approve, you'll just be asked to confirm.</p>
+                } @else {
+                  <p class="muted-note" style="margin: 0.7rem 0 0; color: var(--good-text)"><app-icon name="check" [size]="12" /> Bank statement on file.</p>
+                }
+              </app-card>
+            }
+
+            @if (!reviewCanApprove() && !isResolved()) {
+              <div class="wizard-foot" style="border-top: none; margin-top: 0">
+                <span class="muted-note" style="margin: 0">
+                  This case is owned by <strong style="text-transform: capitalize">{{ roleLabel(c.ownerRole) }}</strong> — the approve/reject decision is theirs. You can respond in the thread or email the distributor.
+                </span>
+              </div>
+            }
+
+            <!-- Reached via "All cases" (see rows' filter above) — resolved cases stay browsable
+                 forever (even after the candidate becomes an active Partner) so a team that was
+                 ever involved can always check where it ended up, but the decision itself is
+                 done — no re-approving/re-rejecting a case that's already closed. -->
+            @if (isResolved()) {
+              <div class="wizard-foot" style="border-top: none; margin-top: 0">
+                <span class="muted-note" style="margin: 0">
+                  <app-icon [name]="c.status === 'approved' ? 'check' : 'close'" [size]="12" /> This case is <strong>{{ STATUS_LABEL[c.status] }}</strong> — no further action is possible on it.
+                </span>
+              </div>
+            }
+
+            <!-- Viewing the underlying documents shouldn't require it being your turn to decide —
+                 Leadership (or anyone browsing "All cases") can check these before the case even
+                 reaches their queue, or after it's already resolved, not just while canApprove and
+                 still flagged. -->
+            @if ((!reviewCanApprove() || isResolved()) && attachments().length > 0) {
+              <app-card [title]="'Attachments (' + attachments().length + ')'">
+                <div class="cr-panel-attach">
+                  @for (d of attachments(); track d.name) {
+                    <div class="cr-attach-row">
+                      <span><app-icon name="documents" [size]="13" /> {{ d.name }}</span>
+                      <button class="btn text sm" style="padding: 0" (click)="previewDoc(d)">View</button>
+                    </div>
+                  }
+                </div>
+              </app-card>
+            }
+          </div>
+
+          @if (reviewCanApprove() && !isResolved()) {
+            <div class="cr-panel">
+              <app-card>
+                <div class="cr-panel-h" style="display: flex; align-items: center; gap: 0.4rem"><app-icon name="spark" [size]="13" /> AI Decision Summary</div>
+                <div class="cr-panel-route">Route to {{ teamLabel() }}</div>
+                <div class="cr-panel-sub">Review and decide</div>
+                <div class="cr-panel-stats">
+                  <div class="cr-panel-stat"><div class="k">Confidence</div><div class="v">{{ c.confidencePct }}%</div></div>
+                  <div class="cr-panel-stat"><div class="k">Risk Level</div><div class="v"><app-pill [tone]="risk().tone">{{ risk().label }}</app-pill></div></div>
+                </div>
+                <div class="cr-panel-h">Primary Reason</div>
+                <p class="cr-panel-reason">
+                  {{ ccVal.financeSnapshot ? ('Capital shortfall of ₹' + ccVal.financeSnapshot.fundingGap + 'L')
+                    : ccVal.channelSnapshot ? ('Coverage shortfall of ' + ccVal.channelSnapshot.gap.toFixed(1) + '/10')
+                    : fr.summary }}
+                </p>
+
+                <div class="cr-panel-h">Recommended Action</div>
+                <p style="font-weight: 800; color: var(--ink); margin: 0 0 0.3rem">{{ hasConditions() ? 'Approve with Conditions' : 'Approve' }}</p>
+                <ul class="cr-conditions">
+                  @for (cond of conditions(); track cond) {
+                    <li>{{ cond }}</li>
+                  }
+                </ul>
+                <button class="cr-hero-toggle" style="margin-bottom: 0.8rem" (click)="askCopilot()">Ask Copilot: Why this recommendation? →</button>
+
+                @if (attachments().length > 0) {
+                  <div class="cr-panel-h">Attachments ({{ attachments().length }})</div>
+                  <div class="cr-panel-attach">
+                    @for (d of attachments(); track d.name) {
+                      <div class="cr-attach-row">
+                        <span><app-icon name="documents" [size]="13" /> {{ d.name }}</span>
+                        <button class="btn text sm" style="padding: 0" (click)="previewDoc(d)">View</button>
+                      </div>
+                    }
+                  </div>
+                }
+
+                <div style="display: flex; flex-direction: column; gap: 0.5rem">
+                  <app-button variant="ghost" style="color: var(--crit-text)" (click)="decide(c.code, 'rejected')"><app-icon name="close" [size]="13" /> Reject</app-button>
+                  <app-button variant="ghost" (click)="decide(c.code, 'info_requested')"><app-icon name="comms" [size]="13" /> Request More Info</app-button>
+                  <div class="cr-approve-row">
+                    <app-button [disabled]="blocked()" (click)="requestApprove('conditions')" style="flex: 1"
+                      [title]="blocked() ? 'Link the Discontinuation Form first' : null">
+                      {{ isFinalOnboardingApproval() ? 'Complete Onboarding' : hasConditions() ? 'Approve with Conditions' : 'Approve' }} →
+                    </app-button>
+                    @if (hasConditions()) {
+                      <app-button [disabled]="blocked()" (click)="approveMenuOpen.set(!approveMenuOpen())" title="More approve options">
+                        <app-icon name="chevronDown" [size]="14" />
+                      </app-button>
+                      @if (approveMenuOpen()) {
+                        <div class="cr-approve-menu">
+                          <button class="btn ghost sm" (click)="approveMenuOpen.set(false); requestApprove('plain')">Approve without conditions →</button>
+                        </div>
+                      }
+                    }
+                  </div>
+                  <p class="muted-note" style="margin: 0; text-align: center"><app-icon name="shield" [size]="11" /> Your decision will be recorded in the audit log.</p>
+                </div>
+              </app-card>
+            </div>
+          }
+        </div>
+      }
+    }
+
+    <app-modal [open]="confirmNoDocKind() !== null" (closed)="confirmNoDocKind.set(null)" title="Continue without the bank statement?">
+      <div style="display: flex; flex-direction: column; gap: 0.7rem">
+        <p style="margin: 0; font-size: 0.88rem; color: var(--ink)">
+          {{ c.partnerName }}'s bank statement hasn't been uploaded yet. Are you ready to continue without it?
+        </p>
+        <p class="muted-note" style="margin: 0">
+          You can add a Note for Leadership above explaining why, then approve anyway — this will be recorded in the audit log.
+        </p>
+        <div class="row-between" style="margin-top: 0.4rem">
+          <app-button variant="ghost" (click)="confirmNoDocKind.set(null)">Cancel</app-button>
+          <app-button (click)="confirmApproveWithoutDoc()">Yes, continue anyway →</app-button>
+        </div>
+      </div>
+    </app-modal>
+
+    <app-modal [open]="emailTarget() !== null" (closed)="closeEmailModal()"
+      [title]="completingOnboarding() ? ('Complete Onboarding — ' + emailRecipientName()) : ('Email ' + emailRecipientName())">
+      <div style="display: flex; flex-direction: column; gap: 0.75rem">
+        <div class="field">
+          <label>To</label>
+          <input class="input" [value]="emailTo()" disabled />
+        </div>
+        <div class="field">
+          <label>Subject</label>
+          <input class="input" [ngModel]="emailSubject()" (ngModelChange)="emailSubject.set($event)" />
+        </div>
+        <div class="field">
+          <label>Message</label>
+          <textarea class="input" rows="8" [ngModel]="emailBody()" (ngModelChange)="emailBody.set($event)" style="width: 100%; resize: vertical"></textarea>
+        </div>
+        @if (sendEmailError(); as err) {
+          <p class="muted-note" style="margin: 0; color: var(--crit-text)">
+            <app-icon name="alert" [size]="12" /> Couldn't send: {{ err }}
+          </p>
+        }
+        <div class="row-between" style="margin-top: 0.5rem">
+          <app-button variant="ghost" (click)="closeEmailModal()" [disabled]="sendingEmail()">Cancel</app-button>
+          <app-button (click)="sendEmail()" [disabled]="sendingEmail()">
+            <app-icon name="mail" [size]="13" /> {{ sendingEmail() ? 'Sending…' : completingOnboarding() ? 'Complete Onboarding →' : 'Send email' }}
+          </app-button>
+        </div>
+      </div>
+    </app-modal>
+  </div>
+} @else {
+  <!-- ---------------- Approvals queue ---------------- -->
+  <div>
+    <div class="page-head">
+      <h1>Approvals <span class="page-info-ic" [title]="titleForHelp()"><app-icon name="help" [size]="13" /></span></h1>
+    </div>
+
+    @if (notice(); as n) {
+      <div class="notify-bar" style="margin-bottom: 1rem">
+        <app-icon name="approvals" [size]="14" /> {{ n }}
+        <button class="btn text sm" style="margin-left: auto" (click)="notice.set(null)">Dismiss</button>
+      </div>
+    }
+
+    <div class="row-between" style="margin-bottom: 1rem; flex-wrap: wrap; gap: 0.7rem">
+      <div class="tabs" style="margin-bottom: 0; border: none">
+        @for (f of FILTERS; track f.key) {
+          <button class="tab" [class.active]="filter() === f.key" (click)="filter.set(f.key)">{{ f.label }}</button>
+        }
+      </div>
+      @if (isOwner()) {
+        <div class="seg">
+          <button [class.on]="scope() === 'mine'" (click)="scope.set('mine')">My queue</button>
+          <button [class.on]="scope() === 'all'" (click)="scope.set('all')">All cases</button>
+        </div>
+      }
+    </div>
+
+    @if (canApprove() && selected().length > 0) {
+      <div class="notify-bar" style="margin-bottom: 1rem">
+        <strong>{{ selected().length }} selected</strong>
+        <button class="btn primary sm" style="margin-left: auto" (click)="bulkApprove()">Approve all selected</button>
+        <button class="btn text sm" (click)="selected.set([])">Clear</button>
+      </div>
+    }
+
+    @if (rows().length === 0) {
+      <app-card><p style="padding: 0.5rem 0">Queue is clear — no flagged cases{{ filter() !== 'all' ? ' for this type' : '' }}. 🎉</p></app-card>
+    } @else {
+      <div class="dtable-wrap">
+        <table class="dtable">
+          <thead><tr>@if (canApprove()) {<th></th>}<th>Case</th><th>Partner</th><th>Type</th><th>Town</th><th>Owner</th><th>Status</th><th>Confidence</th><th>SLA</th><th></th></tr></thead>
+          <tbody>
+            @for (c of rows(); track c.code) {
+              <tr class="clickable" (click)="openReview(c.code)">
+                @if (canApprove()) {
+                  <td (click)="$event.stopPropagation()">
+                    @if (canDecideCase(c)) {
+                      <input type="checkbox" [checked]="selected().includes(c.code)" (change)="toggleSelect(c.code)" [attr.aria-label]="'Select ' + c.code" />
+                    }
+                  </td>
+                }
+                <td><span class="code">{{ c.code }}</span></td>
+                <td class="strong">{{ c.partnerName }} @if (c.subtype === 'replacement') {<app-pill tone="warn">Replacement</app-pill>}</td>
+                <td><span class="type-badge"><span class="d" [style.background]="PARTNER_TYPE_COLOR[c.partnerType]"></span>{{ partnerTypeLabel(c.partnerType).split(' ')[0] }}</span></td>
+                <td>{{ c.town }}, {{ c.state }}</td>
+                <td style="text-transform: capitalize">{{ roleLabel(c.ownerRole) }}</td>
+                <td><app-pill [tone]="STATUS_TONE[c.status]" [dot]="true">{{ STATUS_LABEL[c.status] }}</app-pill></td>
+                <td class="num tnum"><app-pill [tone]="confidenceTone(c.confidencePct)" [dot]="true">{{ c.confidencePct }}%</app-pill></td>
+                <td>
+                  @if (c.status !== 'flagged') {
+                    <span class="muted-note" style="margin: 0">—</span>
+                  } @else if (c.isOverdue) {
+                    <app-pill tone="crit" [dot]="true">Overdue</app-pill>
+                  } @else {
+                    <app-pill tone="warn" [dot]="true">{{ c.slaLabel }}</app-pill>
+                  }
+                </td>
+                <td><button class="btn ghost sm" (click)="$event.stopPropagation(); openReview(c.code)">Review</button></td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+  </div>
+}

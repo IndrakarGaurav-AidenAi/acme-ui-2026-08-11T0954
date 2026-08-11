@@ -1,0 +1,6 @@
+<app-card>
+  <div class="p360-card-head"><span class="p360-card-title">Performance — monthly sales trend (₹L)</span></div>
+  <div class="p360-perf-chart">
+    <app-sparkline [data]="trend()" color="var(--ai)" [width]="640" [height]="120" [responsive]="true" />
+  </div>
+</app-card>

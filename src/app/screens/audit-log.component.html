@@ -1,0 +1,107 @@
+<div>
+  <div class="page-head">
+    <h1>Audit Log <span class="page-info-ic" title="Track and review all actions across the platform."><app-icon name="help" [size]="13"></app-icon></span></h1>
+  </div>
+
+  <div class="al-tiles">
+    @for (s of STATS(); track s.label) {
+      <div class="al-tile">
+        <span class="al-tile-ic" [class.tone-ai]="s.tone === 'ai'" [class.tone-good]="s.tone === 'good'" [class.tone-warn]="s.tone === 'warn'"><app-icon [name]="s.icon" [size]="18"></app-icon></span>
+        <div class="al-tile-label">{{ s.label }}</div>
+        <div class="al-tile-val">{{ s.value }}</div>
+        <div class="al-tile-sub">{{ s.sub }}</div>
+      </div>
+    }
+  </div>
+
+  <div class="pt-toolbar">
+    <div class="tabs">
+      <button class="tab" [class.active]="kind() === 'all'" (click)="setKind('all')">All</button>
+      <button class="tab" [class.active]="kind() === 'ai'" (click)="setKind('ai')">AI Agents ({{ counts().ai }})</button>
+      <button class="tab" [class.active]="kind() === 'human'" (click)="setKind('human')">Human ({{ counts().human }})</button>
+      <button class="tab" [class.active]="kind() === 'admin'" (click)="setKind('admin')">Admin ({{ counts().admin }})</button>
+    </div>
+    <div class="pt-toolbar-actions">
+      <span class="pt-search"><app-icon name="search" [size]="14"></app-icon>
+        <input placeholder="Search actor, action, or entity…" [ngModel]="query()" (ngModelChange)="query.set($event)" />
+      </span>
+      <div class="pt-filter-wrap">
+        <app-button variant="ghost" size="sm" (click)="toggleFiltersOpen()">
+          <app-icon name="filter" [size]="13"></app-icon> Filters{{ activeFilterCount() > 0 ? ' · ' + activeFilterCount() : '' }}
+        </app-button>
+        @if (filtersOpen()) {
+          <div class="pt-filter-pop">
+            <div class="pt-filter-group">
+              <div class="pt-filter-label">Actor</div>
+              <div class="pt-filter-opts">
+                <button class="pt-filter-chip" [class.on]="actorFilter() === 'all'" (click)="setActorFilter('all')">All</button>
+                @for (a of actors(); track a) {
+                  <button class="pt-filter-chip" [class.on]="actorFilter() === a" (click)="setActorFilter(a)">{{ a }}</button>
+                }
+              </div>
+            </div>
+            <div class="pt-filter-foot">
+              <button class="btn text sm" (click)="resetFilters()">Clear</button>
+              <button class="btn sm" (click)="filtersOpen.set(false)">Done</button>
+            </div>
+          </div>
+        }
+      </div>
+      <app-button variant="ghost" size="sm" (click)="downloadCsv()"><app-icon name="download" [size]="13"></app-icon> Export</app-button>
+    </div>
+  </div>
+
+  <div class="dtable-wrap">
+    <table class="dtable al-table">
+      <thead><tr><th>When</th><th>Actor</th><th>Action</th><th>Entity</th><th aria-label="Actions"></th></tr></thead>
+      <tbody>
+        @if (rows().length === 0) {
+          <tr><td [attr.colspan]="5" [style.text-align]="'center'" [style.color]="'var(--ink-mute)'" [style.padding]="'1.6rem 0'">
+            No events match these filters. <button class="btn text sm" [style.padding]="0" (click)="resetAllFilters()">Reset</button>
+          </td></tr>
+        }
+        @for (g of groups(); track g.date) {
+          <tr class="al-day"><td [attr.colspan]="5">{{ dayHeader(g.date) }}</td></tr>
+          @for (e of g.entries; track e.id) {
+            <tr>
+              <td class="num">{{ splitWhen(e.when).time }}</td>
+              <td>
+                <span class="al-actor">
+                  <span class="al-actor-ic" [class.tone-ai]="kindMeta(e.kind).tone === 'ai'" [class.tone-good]="kindMeta(e.kind).tone === 'good'" [class.tone-warn]="kindMeta(e.kind).tone === 'warn'"><app-icon [name]="kindMeta(e.kind).icon" [size]="14"></app-icon></span>
+                  <span>
+                    <span class="al-actor-name">{{ e.actor }}</span>
+                    <span class="al-actor-kind">{{ kindMeta(e.kind).label }}</span>
+                  </span>
+                </span>
+              </td>
+              <td>{{ e.action }}</td>
+              <td>
+                @if (isCaseEntity(e.entity)) {
+                  <button class="al-entity-link" (click)="goToApprovals()">{{ e.entity }}</button>
+                } @else {
+                  <span>{{ e.entity }}</span>
+                }
+              </td>
+              <td><button class="al-kebab" aria-label="More actions"><app-icon name="more" [size]="14"></app-icon></button></td>
+            </tr>
+          }
+        }
+      </tbody>
+    </table>
+  </div>
+
+  <div class="pt-foot">
+    <span class="pt-foot-count">Showing {{ showingFrom() }} to {{ showingTo() }} of {{ rows().length }} events.</span>
+    <div class="al-pager">
+      <button class="al-pg-btn" [disabled]="curPage() === 1" (click)="setPage(curPage() - 1)" aria-label="Previous page"><app-icon name="back" [size]="14"></app-icon></button>
+      @for (p of pageList(totalPages(), curPage()); track $index) {
+        @if (p === '…') {
+          <span class="al-pg-ellipsis">…</span>
+        } @else {
+          <button class="al-pg-num" [class.active]="p === curPage()" (click)="setPage(p)">{{ p }}</button>
+        }
+      }
+      <button class="al-pg-btn" [disabled]="curPage() === totalPages()" (click)="setPage(curPage() + 1)" aria-label="Next page"><app-icon name="chevronRight" [size]="14"></app-icon></button>
+    </div>
+  </div>
+</div>

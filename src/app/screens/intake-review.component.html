@@ -1,0 +1,421 @@
+@if (!ext()) {
+  @if (!refetchDone()) {
+    <div>
+      <div class="page-head"><h1>Loading intake item…</h1></div>
+    </div>
+  } @else {
+    <div>
+      <div class="page-head"><h1>Intake item not found <span class="page-info-ic" title="This intake item isn't available (it may have been a session-only upload)."><app-icon name="help" [size]="13" /></span></h1></div>
+      <app-button (click)="goToIntakeInbox()">← Back to Intake Inbox</app-button>
+    </div>
+  }
+} @else {
+  <div class="ir">
+    <div class="page-head">
+      <div class="row-between">
+        <h1>Review — {{ ext()!.source }}</h1>
+        <app-button variant="text" (click)="goToIntakeInbox()">✕ Close</app-button>
+      </div>
+    </div>
+
+    <app-card>
+      <div class="ir-subject">
+        <span class="ir-subject-ic"><app-icon [name]="ext()!.channel === 'email' ? 'mail' : 'documents'" [size]="18" /></span>
+        <div style="flex: 1; min-width: 0">
+          <div class="ir-subject-label">{{ ext()!.channel === 'email' ? 'Email Subject' : 'File' }}</div>
+          <div class="ir-subject-text">"{{ ext()!.title }}"</div>
+        </div>
+        <div class="ir-received">
+          <div class="ir-subject-label">Received</div>
+          <div class="ir-received-row"><b>{{ ext()!.receivedAt }}</b> <app-pill tone="neutral">{{ ext()!.channel === 'email' ? 'Email' : 'Upload' }}</app-pill></div>
+        </div>
+      </div>
+    </app-card>
+
+    @if (ext()!.duplicate) {
+      <div class="ir-dup">
+        <span class="ir-dup-ic"><app-icon name="flag" [size]="14" /></span>
+        <div style="flex: 1">
+          <div class="ir-dup-title">Possible duplicate</div>
+          <div class="ir-dup-note">{{ ext()!.duplicate }}</div>
+        </div>
+        <app-button variant="ghost" size="sm"><app-icon name="external" [size]="13" /> View existing record</app-button>
+      </div>
+    }
+
+    <app-card>
+      <div class="ir-card-title">Intake details</div>
+      @if (ext()!.summary) {
+        <div class="ir-summary">
+          <span class="ir-summary-tag"><app-icon name="spark" [size]="12" /> Agent summary</span>
+          <span>{{ ext()!.summary }}</span>
+        </div>
+      }
+      <div class="ir-meta-grid">
+        <div class="ir-meta"><div class="k">Received</div><div class="v">{{ ext()!.receivedFull ?? ext()!.receivedAt }}</div></div>
+        <div class="ir-meta"><div class="k">Channel</div><div class="v">{{ ext()!.channel === 'email' ? 'Email' : 'Manual upload' }}</div></div>
+        <div class="ir-meta"><div class="k">Priority</div><div class="v">
+          @if (ext()!.priority === 'high') { <app-pill tone="crit" [dot]="true">High</app-pill> }
+          @else if (ext()!.priority === 'low') { <app-pill tone="neutral">Low</app-pill> }
+          @else { <app-pill tone="warn" [dot]="true">Normal</app-pill> }
+        </div></div>
+        <div class="ir-meta"><div class="k">Region</div><div class="v">{{ ext()!.region ?? '—' }}</div></div>
+        <div class="ir-meta"><div class="k">Assigned to</div><div class="v">{{ ext()!.assignedTo ?? 'Unassigned' }}</div></div>
+        <div class="ir-meta"><div class="k">Partner type</div><div class="v">{{ ext()!.partnerType === 'vendor' ? 'Vendor' : 'Distributor' }}</div></div>
+      </div>
+      @if (ext()!.attachments && ext()!.attachments!.length > 0) {
+        <div class="ir-attach">
+          <div class="k">Attachments ({{ ext()!.attachments!.length }})</div>
+          <div class="ir-attach-list">
+            @for (a of ext()!.attachments!; track a) {
+              <span class="ir-attach-chip"><app-icon name="documents" [size]="12" /> {{ a }}</span>
+            }
+          </div>
+        </div>
+      }
+    </app-card>
+
+    <app-card>
+      <div class="ir-actions">
+        <div class="ir-metric">
+          <div class="ir-metric-label">Extraction confidence</div>
+          <app-pill [tone]="confTone()" [dot]="true">{{ confLabel() }} ({{ confPct() }}%)</app-pill>
+        </div>
+        <div class="ir-metric">
+          <div class="ir-metric-label">Fields captured</div>
+          <div class="ir-metric-value">{{ captured() }} / {{ total() }}</div>
+        </div>
+        <div class="ir-actions-btns">
+          @if (missingAll().length > 0) {
+            <app-button variant="ghost" size="sm" (click)="openRequest()"><app-icon name="send" [size]="13" /> Request missing info</app-button>
+          }
+          <app-button size="sm" (click)="createLead()"><app-icon name="approvals" [size]="13" /> Review &amp; create lead</app-button>
+        </div>
+      </div>
+    </app-card>
+
+    @if (uploadNote()) {
+      <div class="notify-bar" style="margin-bottom: 1rem">
+        <app-icon name="upload" [size]="14" /> {{ uploadNote() }}
+      </div>
+    }
+    @if (mailNote()) {
+      <div class="notify-bar" style="margin-bottom: 1rem">
+        <app-icon name="send" [size]="14" /> {{ mailNote() }}
+      </div>
+    }
+
+    <div class="ir-cols">
+      <app-card>
+        <div class="ir-card-title">{{ ext()!.candidates ? 'Detected candidates (' + ext()!.candidates!.length + ')' : 'Extracted Information' }}</div>
+        @if (ext()!.candidates) {
+          <div class="ir-cands">
+            @for (c of ext()!.candidates!; track c.name) {
+              <div class="ir-cand">
+                <span class="ir-cand-av">{{ initialsOf(c.name) }}</span>
+                <div><div class="ir-cand-nm">{{ c.name }}</div><div class="ir-cand-tw">{{ c.town }}</div></div>
+              </div>
+            }
+          </div>
+        } @else {
+          <div class="ir-fields">
+            @for (f of mergedFieldsFor(); track f.label) {
+              <div class="ir-field">
+                <span class="ir-field-ic" [class.miss]="!(f.ok || !!manualValues()[f.label]?.trim())"><app-icon [name]="fieldIcon(f.label)" [size]="15" /></span>
+                <div style="min-width: 0">
+                  <div class="ir-field-k">{{ f.label }}</div>
+                  <div class="ir-field-v" [class.miss]="!(f.ok || !!manualValues()[f.label]?.trim())">
+                    {{ manualValues()[f.label]?.trim() ?? f.value }}
+                    @if (manualValues()[f.label]?.trim()) {
+                      <span class="ir-recovered" title="Entered manually by you"><app-icon name="user" [size]="10" /> manual</span>
+                    }
+                    @if (!manualValues()[f.label]?.trim() && sourceDocForField(f)) {
+                      <button class="ir-recovered ir-source-btn" [title]="'Check against ' + sourceDocForField(f)!.name" (click)="openSourceDoc(sourceDocForField(f)!, f.label)">
+                        <app-icon name="documents" [size]="10" /> {{ f.recoveredFrom ? 'from ' + f.recoveredFrom : 'Source' }}
+                      </button>
+                    }
+                    @if (!manualValues()[f.label]?.trim() && !sourceDocForField(f) && f.recoveredFrom) {
+                      <span class="ir-recovered" [title]="'Captured from ' + f.recoveredFrom"><app-icon name="spark" [size]="10" /> from {{ f.recoveredFrom }}</span>
+                    }
+                    @if (!(f.ok || !!manualValues()[f.label]?.trim())) {
+                      @if (editField() === f.label) {
+                        <span class="ir-manual-edit">
+                          <input autofocus [value]="editVal()" [placeholder]="f.label"
+                            (input)="setEditVal($any($event.target).value)"
+                            (keydown)="onManualKeydown($event, f.label)" />
+                          <app-button size="sm" (click)="saveManual(f.label)">Save</app-button>
+                          <app-button variant="text" size="sm" (click)="editField.set(null)">Cancel</app-button>
+                        </span>
+                      } @else {
+                        <app-pill tone="crit">Missing</app-pill>
+                        <button class="ir-manual-btn" (click)="startManualEdit(f.label)">+ Enter manually</button>
+                      }
+                    }
+                  </div>
+                </div>
+              </div>
+            }
+          </div>
+          @if (recoveredCount() > 0) {
+            <p class="ir-recovered-note"><app-icon name="spark" [size]="12" /> {{ recoveredCount() }} field{{ recoveredCount() > 1 ? 's' : '' }} the email didn't include {{ recoveredCount() > 1 ? 'were' : 'was' }} captured from the attached documents.</p>
+          }
+          @if (ext()!.raw) {
+            <div class="ir-raw">
+              <div class="ir-msg-title">
+                <app-icon [name]="ext()!.channel === 'email' ? 'mail' : 'documents'" [size]="13" /> {{ ext()!.channel === 'email' ? 'Received message' : 'File content' }}
+              </div>
+              <div class="ir-msg-summary">
+                <span class="ir-summary-tag"><app-icon name="spark" [size]="12" /> Summary</span>
+                <p>{{ messageSummary() }}</p>
+              </div>
+              @if (ext()!.channel === 'email' && missingAll().length > 0) {
+                <div class="ir-mail-missing">
+                  <div class="ir-mail-missing-head">
+                    <app-icon name="flag" [size]="13" />
+                    <span>This email is missing {{ missingAll().length }} item{{ missingAll().length > 1 ? 's' : '' }}
+                      @if (missing().length > 0 && missingDocs().length > 0) {
+                        ({{ missing().length }} field{{ missing().length > 1 ? 's' : '' }}, {{ missingDocs().length }} document{{ missingDocs().length > 1 ? 's' : '' }})
+                      }
+                    </span>
+                  </div>
+                  <div class="ir-mail-missing-chips">
+                    @for (m of missingAll(); track m) {
+                      <span class="ir-mail-missing-chip">{{ m }}</span>
+                    }
+                  </div>
+                  <app-button variant="ghost" size="sm" (click)="openRequest()">
+                    <app-icon name="send" [size]="13" /> Reply &amp; request these
+                  </app-button>
+                </div>
+              }
+              <button class="ir-raw-toggle" (click)="showRaw.set(!showRaw())">
+                {{ showRaw() ? '▲ Hide full message' : ('▾ View full ' + (ext()!.channel === 'email' ? 'message' : 'content')) }}
+              </button>
+              @if (showRaw()) {
+                <div class="ir-raw-body">
+                  @for (p of messageParagraphs(); track $index) {
+                    <p>{{ p }}</p>
+                  }
+                </div>
+              }
+            </div>
+          }
+        }
+      </app-card>
+
+      <div class="ir-col">
+        @if ((ext()!.partnerType ?? 'distributor') === 'distributor') {
+          <app-card>
+            <div class="ir-card-head">
+              <span class="ir-card-title">New DB / Replacement / Additional DB</span>
+            </div>
+            <div class="field">
+              <select class="select" [ngModel]="dbSubtypeLabel()" (ngModelChange)="onSubtypeSelect($event)">
+                @for (t of DB_SUBTYPES; track t) { <option [value]="t">{{ t }}</option> }
+              </select>
+            </div>
+            @if (subtype() === 'additional') {
+              <div class="field">
+                <label>If Additional DB, mention reason</label>
+                <input class="input" [ngModel]="additionalReason()" (ngModelChange)="additionalReason.set($event)" placeholder="New beat — GM Excl DB" />
+              </div>
+            }
+            @if (subtype() === 'replacement') {
+              <div class="field">
+                <label>If Replacement, mention OLD DB Code</label>
+                <select class="select" [ngModel]="oldDbCode()" (ngModelChange)="onOldDbCodeSelect($event)">
+                  <option value="">Select the DB being replaced…</option>
+                  @for (p of codedDistributors(); track p.id) {
+                    <option [value]="p.dbCode">{{ p.dbCode }} — {{ p.legalName }} ({{ p.town }})</option>
+                  }
+                </select>
+                @if (oldDbName()) {
+                  <p class="muted-note" style="margin: 0.4rem 0 0"><app-icon name="check" [size]="12" /> Replacing <strong>{{ oldDbName() }}</strong> ({{ oldDbCode() }}).</p>
+                }
+                <p class="muted-note" style="margin: 0.4rem 0 0">
+                  Pulled from the Partners directory — picking a DB pre-fills the sheet below with what's already on file for it.
+                </p>
+              </div>
+              <div class="field">
+                <label>If Replacement, fill up next sheet — Distributor Disengagement Recommendation Form</label>
+                <div class="disc-inline-card">
+                  <app-disengagement-form-fields [form]="discForm()" (formChange)="discForm.set($event)" />
+                </div>
+              </div>
+            }
+          </app-card>
+        }
+        @if (docs().length > 0) {
+          <app-card>
+            <div class="ir-card-head">
+              <span class="ir-card-title">Required Documents</span>
+              <span class="ir-card-meta">{{ docsReceived() }} / {{ docs().length }} received</span>
+            </div>
+            <div class="ir-docs">
+              @for (d of docs(); track d.name) {
+                <div class="ir-doc" [class.ok]="d.received" [class.miss]="!d.received">
+                  <span class="ir-doc-dot">{{ d.received ? '✓' : '!' }}</span>
+                  <div class="ir-doc-body">
+                    <div class="ir-doc-name">{{ d.name }}</div>
+                    @if (d.file) { <div class="ir-doc-file">{{ d.file }}</div> }
+                  </div>
+                  @if (d.received) {
+                    <div class="ir-doc-actions">
+                      <button class="btn ghost sm" (click)="openSourceDoc(d)">View</button>
+                      @if (canUpload()) {
+                        <button class="btn ghost sm" (click)="fileInput.click()" title="Wrong file attached to this slot? Swap it out.">
+                          <app-icon name="upload" [size]="12" /> Replace
+                        </button>
+                        <input #fileInput type="file" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.xls,.xlsx" style="display: none"
+                          (change)="onDocFileSelected($event, d.name)" />
+                      }
+                      <div class="ir-doc-more">
+                        <button class="ir-doc-dl" title="More" aria-label="More" (click)="toggleDocMenu(d.name)">⋯</button>
+                        @if (openMenuDoc() === d.name) {
+                          <div class="ir-doc-menu" role="menu">
+                            <button role="menuitem" (click)="openMenuDoc.set(null); downloadDocFile(d)">
+                              <app-icon name="download" [size]="13" /> Download
+                            </button>
+                            @if (canUpload()) {
+                              <button role="menuitem" class="danger" (click)="confirmRemoveDoc(d.name)">
+                                <app-icon name="close" [size]="13" /> Remove
+                              </button>
+                            }
+                          </div>
+                        }
+                      </div>
+                    </div>
+                  } @else {
+                    <div class="ir-doc-actions">
+                      <app-pill tone="warn">Not yet attached</app-pill>
+                      @if (canUpload()) {
+                        <button class="btn ghost sm" (click)="fileInput2.click()">
+                          <app-icon name="upload" [size]="12" /> Upload
+                        </button>
+                        <input #fileInput2 type="file" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.xls,.xlsx" style="display: none"
+                          (change)="onDocFileSelected($event, d.name)" />
+                      }
+                    </div>
+                  }
+                </div>
+              }
+            </div>
+          </app-card>
+        }
+        <app-card>
+          <div class="ir-card-head">
+            <span class="ir-card-title"><app-icon name="target" [size]="14" /> Location verification</span>
+          </div>
+          <p class="di-blurb">Cross-checks the lead's claimed town/state against the GST registration &amp; godown address.</p>
+          <div class="di-loc">
+            @if (locState() === 'done') {
+              @if (claimedTown()) {
+                <app-pill tone="good" [dot]="true">Verified — {{ claimedTown() }}{{ claimedState() ? ', ' + claimedState() : '' }} matches the GST registration &amp; godown address</app-pill>
+              } @else {
+                <app-pill tone="warn" [dot]="true">Inconclusive — no town/city captured; enter it manually and re-check</app-pill>
+              }
+            } @else {
+              <app-button variant="ghost" size="sm" (click)="runLoc()" [disabled]="locState() === 'running'">
+                <app-icon name="target" [size]="13" /> {{ locState() === 'running' ? 'Checking location…' : "Verify lead's location" }}
+              </app-button>
+            }
+          </div>
+          <p class="muted-note" style="margin-top: 0.7rem">
+            Document tampering/authenticity checks moved to their own screen — <a routerLink="/document-authenticity">Document Authenticity →</a>
+          </p>
+        </app-card>
+
+        <app-card>
+          <div class="ir-card-title">Notes</div>
+          <textarea class="ir-notes" maxlength="500" placeholder="Add your notes here…" [ngModel]="notes()" (ngModelChange)="notes.set($event)"></textarea>
+          <div class="ir-notes-count">{{ notes().length }} / 500</div>
+        </app-card>
+      </div>
+    </div>
+
+    <div class="ir-foot">
+      <div>
+        <div class="ir-foot-title">Next step</div>
+        <div class="ir-foot-note">If everything looks good, you can create a lead. You can always edit details later.</div>
+      </div>
+      <div style="display: flex; gap: 0.6rem">
+        <app-button variant="ghost" (click)="goToIntakeInbox()">Close</app-button>
+        <app-button (click)="createLead()">Review &amp; create lead →</app-button>
+      </div>
+    </div>
+
+    <app-modal [open]="requestOpen()" (closed)="closeRequest()" title="Reply — request missing info">
+      <div class="ir-reply-meta">
+        <div><span class="k">To</span> {{ ext()!.source }}</div>
+        <div><span class="k">Subject</span> Re: {{ ext()!.title }}</div>
+      </div>
+      <div class="field">
+        <label>Missing fields &amp; documents to request</label>
+        <div class="ir-reply-checks">
+          @for (m of missingAll(); track m) {
+            <label class="ir-reply-check">
+              <input type="checkbox" [checked]="requestSel().has(m)" (change)="toggleRequestField(m)" />
+              <span>{{ m }}</span>
+            </label>
+          }
+        </div>
+      </div>
+      <div class="field">
+        <label>Message</label>
+        <textarea class="input" style="min-height: 110px; resize: vertical" [ngModel]="requestMsg()" (ngModelChange)="setRequestMsg($event)"></textarea>
+      </div>
+      <p class="muted-note" style="margin-bottom: 0.4rem">
+        Sends as a real email reply to {{ ext()!.source }} over SMTP.
+        @if (missingDocs().length && requestSel().size && missingDocsSelected()) {
+          A sample of the expected format will be attached for: {{ missingDocsSelectedList() }}.
+        }
+      </p>
+      @if (sendError()) {
+        <div class="notify-bar" style="margin-bottom: 0.7rem">
+          <app-icon name="flag" [size]="14" /> Couldn't send: {{ sendError() }}
+        </div>
+      }
+      <div style="display: flex; justify-content: flex-end; gap: 0.5rem">
+        <app-button variant="ghost" (click)="closeRequest()">Cancel</app-button>
+        <app-button [disabled]="sending() || requestSel().size === 0 || !requestMsg().trim()" (click)="sendRequest()">
+          <app-icon name="send" [size]="13" /> {{ sending() ? 'Sending…' : 'Send request' }}
+        </app-button>
+      </div>
+    </app-modal>
+
+    <app-modal [open]="!!sourceDoc()" (closed)="closeSourceDoc()" [title]="sourceDoc()?.doc?.name ?? 'Source document'">
+      @if (sourceDoc(); as sd) {
+        <div class="ir-source">
+          <div class="ir-source-issuer"><app-icon name="shield" [size]="13" /> {{ sourceDocIssuer(sd.doc.name) }}</div>
+          @if (extractingDoc() === sd.doc.name) { <p class="muted-note">Reading the document…</p> }
+          @if (uploadedFields()[sd.doc.name]; as realFields) {
+            <p class="muted-note" style="margin-bottom: 0.4rem">Fields found in the actual uploaded file:</p>
+            <div class="ir-source-rows">
+              @for (f of realFields; track f.label) {
+                <div class="ir-source-row" [class.hi]="f.ok">
+                  <span class="k">{{ f.label }}@if (f.ok) {<span class="ir-source-tag">found in this doc</span>}</span>
+                  <span class="v">@if (f.ok) { {{ f.value }} } @else { <app-pill tone="warn">Not found</app-pill> }</span>
+                </div>
+              }
+            </div>
+          } @else {
+            <div class="ir-source-rows">
+              @for (r of sourceRows(sd.doc); track r.k) {
+                <div class="ir-source-row" [class.hi]="highlightKeysFor(sd).has(r.k)">
+                  <span class="k">{{ r.k }}@if (highlightKeysFor(sd).has(r.k)) {<span class="ir-source-tag">extracted from this doc</span>}</span>
+                  <span class="v">@if (r.tone) { <app-pill [tone]="r.tone" [dot]="true">{{ r.v }}</app-pill> } @else { {{ r.v }} }</span>
+                </div>
+              }
+            </div>
+            <p class="ir-source-snippet">{{ sourceDocBodyText(sd.doc) }}</p>
+          }
+          @if (sd.doc.file) { <p class="ir-source-file"><app-icon name="documents" [size]="12" /> {{ sd.doc.file }}</p> }
+          <div class="ir-source-actions">
+            <app-button variant="ghost" size="sm" (click)="downloadDocFile(sd.doc)"><app-icon name="download" [size]="13" /> Download</app-button>
+            <app-button size="sm" (click)="viewDoc(sd.doc, sd.field)"><app-icon name="external" [size]="13" /> View full document</app-button>
+          </div>
+        </div>
+      }
+    </app-modal>
+  </div>
+}

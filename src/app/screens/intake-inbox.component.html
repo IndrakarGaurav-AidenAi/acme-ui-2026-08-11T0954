@@ -1,0 +1,311 @@
+<div>
+  <div class="page-head">
+    <div class="row-between">
+      <div>
+        <h1>Intake Inbox <span class="page-info-ic" title="Candidates arrive via email or manual upload. The Intake Agent reads each, extracts the data, and drafts a candidate profile — you review and confirm, you don't retype."><app-icon name="help" [size]="13" /></span></h1>
+      </div>
+      <div style="display: flex; gap: 0.5rem">
+        @if (viewingAs() === 'ase_asm') {
+          <app-button variant="ghost" size="sm" (click)="goToMySettings()"><app-icon name="settings" [size]="13" /> Inbox Settings</app-button>
+        }
+        <app-button variant="ghost" size="sm" (click)="pasteOpen.set(true)"><app-icon name="mail" [size]="14" /> Paste email</app-button>
+        <app-button size="sm" (click)="createOpen.set(true)"><app-icon name="new" [size]="14" /> Create Lead</app-button>
+        @if (viewingAs() !== 'ase_asm') {
+          <app-button (click)="goToNewApplication()"><app-icon name="new" [size]="14" /> New Application</app-button>
+        }
+      </div>
+    </div>
+  </div>
+
+  <div class="pt-summary cols-5">
+    @for (s of STATS(); track s.label) {
+      <div class="pt-stat">
+        <span class="pt-stat-ic pt-tone-{{ s.tone }}"><app-icon [name]="s.icon" [size]="17" /></span>
+        <div class="pt-stat-label">{{ s.label }}</div>
+        <div class="pt-stat-value">{{ s.value }}</div>
+        <div class="pt-stat-sub">{{ s.sub }}</div>
+      </div>
+    }
+  </div>
+
+  @if (inbox().configured && inbox().error) {
+    <div class="notify-bar" style="margin-bottom: 1rem">
+      <app-icon name="flag" [size]="14" /> Inbox configured but couldn't connect — check GMAIL_USER / GMAIL_APP_PASSWORD and that IMAP is enabled.
+      <span class="muted-note" style="margin-left: 0.4rem">{{ inbox().error }}</span>
+    </div>
+  }
+
+  @if (noMatchAgency()) {
+    <div class="notify-bar" style="margin-bottom: 1rem">
+      <app-icon name="new" [size]="14" /> No intake item found yet for <strong>{{ noMatchAgency() }}</strong> — start a manual application from New Application, or wait for them to reach out.
+    </div>
+  }
+  @if (note()) {
+    <div class="notify-bar" style="margin-bottom: 1rem"><app-icon name="new" [size]="14" /> {{ note() }}</div>
+  }
+
+  <div class="pt-toolbar">
+    <div class="tabs">
+      <button class="tab" [class.active]="tab() === 'email'" (click)="tab.set('email')">Email <span style="opacity: 0.6">· {{ emails().length }}</span></button>
+      <button class="tab" [class.active]="tab() === 'document'" (click)="tab.set('document')">Manual Upload <span style="opacity: 0.6">· {{ docs().length }}</span></button>
+    </div>
+    <div class="pt-toolbar-actions">
+      <span class="pt-search"><app-icon name="search" [size]="14" /><input placeholder="Search by email, subject, or lead…" [ngModel]="query()" (ngModelChange)="query.set($event)" /></span>
+      @if (tab() === 'document') {
+        <app-button variant="ghost" size="sm" (click)="downloadSampleTemplate()"><app-icon name="documents" [size]="13" /> Template</app-button>
+        <app-button variant="ghost" size="sm" (click)="fileInput()?.nativeElement?.click()"><app-icon name="new" [size]="13" /> Upload</app-button>
+        <input #fileInputEl type="file" accept=".csv,.xlsx,.xls,.pdf" style="display: none" (change)="onFileChange($event)" />
+      }
+    </div>
+  </div>
+
+  <div class="dtable-wrap">
+    <table class="dtable">
+      <thead><tr><th>From</th><th>Subject</th><th>Extraction Status</th><th>Extracted Fields</th><th>Actions</th></tr></thead>
+      <tbody>
+        @if (rows().length === 0) {
+          <tr><td colspan="5" style="text-align: center; color: var(--ink-mute); padding: 1.4rem 0">No intake items match your search.</td></tr>
+        }
+        @for (e of rows(); track e.id) {
+          <tr class="clickable" [id]="'intake-row-' + e.id"
+            [style.background]="highlightId() === e.id ? 'var(--ai-bg)' : null"
+            [style.outline]="highlightId() === e.id ? '2px solid var(--ai-text)' : null"
+            [style.outline-offset]="highlightId() === e.id ? '-2px' : null"
+            [style.transition]="highlightId() === e.id ? 'background 0.3s' : null"
+            (click)="review(e.id)">
+            <td>
+              <div class="pt-name-cell">
+                <span class="pt-avatar" style="background: var(--ai)">{{ initialsOf(e.source) }}</span>
+                <div>
+                  <div class="pt-name">{{ e.source }}</div>
+                  <div class="pt-id">{{ metaLine(e) }}</div>
+                </div>
+              </div>
+            </td>
+            <td style="max-width: 260px">"{{ e.title }}"</td>
+            <td>
+              @if (e.candidates) {
+                <div style="display: flex; gap: 0.4rem; flex-wrap: wrap">
+                  <app-pill tone="good" [dot]="true">{{ e.candidates.length }} candidates detected</app-pill>
+                  @if (e.duplicate) {
+                    <app-pill tone="warn" [dot]="true">Possible duplicate</app-pill>
+                  }
+                  @if (priorityPillData(e.priority); as pp) {
+                    <app-pill [tone]="pp.tone" [dot]="pp.dot">{{ pp.label }}</app-pill>
+                  }
+                </div>
+              } @else {
+                <div style="display: flex; gap: 0.4rem; flex-wrap: wrap">
+                  <app-pill [tone]="confTone(e.confidencePct ?? 0)" [dot]="true">{{ capturedCount(e) }}/{{ e.fields.length }} fields · {{ e.confidencePct }}%</app-pill>
+                  @if (hasMissingDocs(e)) {
+                    <app-pill tone="warn">{{ missingDocsCount(e) }} doc{{ missingDocsCount(e) > 1 ? 's' : '' }} missing</app-pill>
+                  }
+                  @if (e.duplicate) {
+                    <app-pill tone="warn" [dot]="true">Possible duplicate</app-pill>
+                  }
+                  @if (e.partnerType === 'vendor') {
+                    <app-pill tone="ai" [dot]="true">Vendor</app-pill>
+                  }
+                  @if (priorityPillData(e.priority); as pp) {
+                    <app-pill [tone]="pp.tone" [dot]="pp.dot">{{ pp.label }}</app-pill>
+                  }
+                </div>
+                @if (missingFieldLabels(e).length > 0) {
+                  <div class="muted-note" style="margin-top: 0.3rem">Missing: {{ missingFieldLabels(e).join(', ') }}</div>
+                }
+              }
+            </td>
+            <td style="max-width: 220px">
+              @if (e.candidates) {
+                <span class="muted-note">{{ candidateNames(e) }}</span>
+              } @else {
+                <span class="ii-fields">{{ fieldNamesPreview(e) }}</span>
+                <button class="ii-viewall" (click)="$event.stopPropagation(); review(e.id)">View all ({{ capturedCount(e) }})</button>
+              }
+            </td>
+            <td (click)="$event.stopPropagation()">
+              <div class="pt-row-actions">
+                <app-button variant="ghost" size="sm" (click)="review(e.id)">Review &amp; Create Lead</app-button>
+                <button class="pt-menu-btn" title="More" aria-label="More">···</button>
+              </div>
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+
+  <div class="pt-foot">
+    <span class="pt-foot-count">Showing 1 to {{ rows().length }} of {{ rows().length }} {{ tab() === 'email' ? 'emails' : 'uploads' }}</span>
+    <div class="pt-pager">
+      <button disabled aria-label="Previous">‹</button>
+      <button class="on">1</button>
+      <button disabled aria-label="Next">›</button>
+    </div>
+  </div>
+
+  <p class="muted-note" style="margin-top: 0.8rem">
+    Manual entry is always available too — the Intake Agent is an accelerator, not a requirement. Start a blank application from New Application any time.
+  </p>
+
+  <app-modal [open]="pasteOpen()" title="Paste an email to extract" size="lg" (closed)="pasteOpen.set(false)">
+    <p class="muted-note" style="margin-bottom: 0.9rem; font-style: normal">
+      Paste a raw enquiry. The Intake Agent extracts the fields and writes a summary from what it finds — no retyping.
+    </p>
+    <div class="field">
+      <label>From</label>
+      <input class="input" [ngModel]="pf().from" placeholder="suvarna.agencies@gmail.com"
+        (ngModelChange)="patchPf({ from: $event })" />
+    </div>
+    <div class="field">
+      <label>Subject</label>
+      <input class="input" [ngModel]="pf().subject" placeholder="Interested in becoming an Acme Distribution distributor — Nashik"
+        (ngModelChange)="patchPf({ subject: $event })" />
+    </div>
+    <div class="field">
+      <label>Email body</label>
+      <textarea class="input" style="min-height: 150px; resize: vertical" [ngModel]="pf().body"
+        placeholder="Dear Acme Distribution team, We are Suvarna Agencies, an FMCG distributor in Nashik…"
+        (ngModelChange)="patchPf({ body: $event })"></textarea>
+    </div>
+    <div style="display: flex; justify-content: flex-end; gap: 0.5rem; margin-top: 0.4rem">
+      <app-button variant="ghost" (click)="pasteOpen.set(false)">Cancel</app-button>
+      <app-button [disabled]="busy() || !pf().body.trim()" (click)="submitPaste()">
+        {{ busy() ? 'Extracting…' : 'Extract →' }}
+      </app-button>
+    </div>
+  </app-modal>
+
+  <app-modal [open]="createOpen()" title="Create a lead" size="lg" (closed)="createOpen.set(false)">
+    <p class="muted-note" style="margin-bottom: 0.9rem; font-style: normal">
+      Fill in what the enquiry would have — the same fields and required documents as an incoming email — when there's nothing to paste or extract from.
+    </p>
+
+    <div class="field">
+      <label>Partner Type</label>
+      <select class="select" [ngModel]="cf().partnerType" (ngModelChange)="patchCf({ partnerType: $event })">
+        <option value="distributor">Distributor</option>
+        <option value="vendor">Vendor</option>
+      </select>
+    </div>
+    <div class="field">
+      <label>Firm / Agency Name *</label>
+      <input class="input" [ngModel]="cf().firmName" placeholder="Suvarna Agencies"
+        (ngModelChange)="patchCf({ firmName: $event })" />
+    </div>
+    <div class="field">
+      <label>Contact Person</label>
+      <input class="input" [ngModel]="cf().contactPerson" placeholder="Mr. R. Suvarnkar"
+        (ngModelChange)="patchCf({ contactPerson: $event })" />
+    </div>
+    <div class="field">
+      <label>Phone Number</label>
+      <input class="input" [ngModel]="cf().phone" placeholder="+91 98230 12345"
+        (ngModelChange)="patchCf({ phone: $event })" />
+    </div>
+    <div class="field">
+      <label>Email Address</label>
+      <input class="input" [ngModel]="cf().email" placeholder="suvarna.agencies@example.com"
+        (ngModelChange)="patchCf({ email: $event })" />
+    </div>
+    <div class="field">
+      <label>Town / City</label>
+      <input class="input" [ngModel]="cf().town" placeholder="Nashik"
+        (ngModelChange)="patchCf({ town: $event })" />
+    </div>
+    <div class="field">
+      <label>State</label>
+      <input class="input" [ngModel]="cf().state" (ngModelChange)="patchCf({ state: $event })" />
+    </div>
+    @if (cf().partnerType === 'distributor') {
+      <div class="field">
+        <label>New DB / Replacement DB / Additional DB</label>
+        <select class="select" [ngModel]="cf().dbSubtype" (ngModelChange)="patchCf({ dbSubtype: $event })">
+          @for (t of DB_SUBTYPES; track t) {
+            <option>{{ t }}</option>
+          }
+        </select>
+      </div>
+      @if (cf().dbSubtype === 'Additional DB') {
+        <div class="field">
+          <label>If Additional DB, mention reason</label>
+          <input class="input" [ngModel]="cf().additionalReason" placeholder="New beat — GM Excl DB"
+            (ngModelChange)="patchCf({ additionalReason: $event })" />
+        </div>
+      }
+      @if (cf().dbSubtype === 'Replacement DB') {
+        <div class="field">
+          <label>If Replacement, mention OLD DB Code</label>
+          <select class="select" [ngModel]="cf().oldDbCode" (ngModelChange)="onOldDbCodeChange($event)">
+            <option value="">Select the DB being replaced…</option>
+            @for (p of codedDistributors(); track p.id) {
+              <option [value]="p.dbCode">{{ p.dbCode }} — {{ p.legalName }} ({{ p.town }})</option>
+            }
+          </select>
+          @if (cf().oldDbName) {
+            <p class="muted-note" style="margin: 0.4rem 0 0"><app-icon name="check" [size]="12" /> Replacing <strong>{{ cf().oldDbName }}</strong> ({{ cf().oldDbCode }}).</p>
+          }
+          <p class="muted-note" style="margin: 0.4rem 0 0">
+            Pulled from the Partners directory — the DB Code isn't something you look up elsewhere, it's assigned when a distributor is first onboarded.
+          </p>
+        </div>
+        <div class="field">
+          <label>If Replacement, fill up next sheet — Distributor Disengagement Recommendation Form</label>
+          <div class="disc-inline-card">
+            <app-disengagement-form-fields [form]="cfDiscForm()" (formChange)="cfDiscForm.set($event)" />
+          </div>
+        </div>
+      }
+      <div class="field">
+        <label>New DB Type</label>
+        <select class="select" [ngModel]="cf().dbCategory" (ngModelChange)="patchCf({ dbCategory: $event })">
+          @for (c of DB_TYPES; track c) {
+            <option>{{ c }}</option>
+          }
+        </select>
+      </div>
+    }
+    <div class="field">
+      <label>Turnover Claim (₹L/mo)</label>
+      <input class="input" type="number" [ngModel]="cf().turnover" placeholder="200"
+        (ngModelChange)="patchCf({ turnover: $event })" />
+    </div>
+    <div class="field">
+      <label>GST Number</label>
+      <input class="input" [ngModel]="cf().gst" placeholder="27ABCPD1234K1Z5"
+        (ngModelChange)="patchCf({ gst: $event })" />
+    </div>
+
+    <div class="field">
+      <label>Required Documents <span class="muted-note" style="font-style: normal">— attach now, or later on the review screen</span></label>
+      <div class="ir-docs">
+        @for (name of cfDocNames(); track name) {
+          <div class="ir-doc" [class.ok]="!!cfDocs()[name]" [class.miss]="!cfDocs()[name]">
+            <span class="ir-doc-dot">{{ cfDocs()[name] ? '✓' : '!' }}</span>
+            <div class="ir-doc-body">
+              <div class="ir-doc-name">{{ name }}</div>
+              @if (cfDocs()[name]; as file) {
+                <div class="ir-doc-file">{{ file.name }}</div>
+              }
+            </div>
+            <div class="ir-doc-actions">
+              @if (!cfDocs()[name]) {
+                <app-pill tone="warn">Not yet attached</app-pill>
+              }
+              <label class="btn ghost sm" style="cursor: pointer">
+                <app-icon name="upload" [size]="12" /> {{ cfDocs()[name] ? 'Replace' : 'Upload' }}
+                <input type="file" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.xls,.xlsx" style="display: none"
+                  (change)="onCfDocChange($event, name)" />
+              </label>
+            </div>
+          </div>
+        }
+      </div>
+    </div>
+
+    <div style="display: flex; justify-content: flex-end; gap: 0.5rem; margin-top: 0.4rem">
+      <app-button variant="ghost" (click)="cancelCreate()">Cancel</app-button>
+      <app-button [disabled]="!cf().firmName.trim()" (click)="createLeadManually()">Create lead →</app-button>
+    </div>
+  </app-modal>
+</div>

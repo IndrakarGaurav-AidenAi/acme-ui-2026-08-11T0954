@@ -1,0 +1,134 @@
+<div style="display: flex; flex-direction: column; gap: 0.85rem">
+  <div class="field">
+    <label>1. Name, Address &amp; DB Code of Distributor</label>
+    <input class="input" [disabled]="readOnly()" [value]="form().distributorNameAddressDbCode"
+      (input)="setField('distributorNameAddressDbCode', inputValue($event))" />
+  </div>
+  <div class="field">
+    <label>2. Date of Appointment</label>
+    <input class="input" [disabled]="readOnly()" [value]="form().dateOfAppointment" placeholder="e.g. 12/03/2019"
+      (input)="setField('dateOfAppointment', inputValue($event))" />
+  </div>
+  <div class="field">
+    <label>3. Major Towns Covered (including any major Upcountry town)</label>
+    <input class="input" [disabled]="readOnly()" [value]="form().majorTownsCovered"
+      (input)="setField('majorTownsCovered', inputValue($event))" />
+  </div>
+
+  <div class="field">
+    <label>4. Does he handle other companies' agency?</label>
+    <div style="display: flex; gap: 1rem">
+      @for (v of yesNo; track v) {
+        <label style="display: flex; align-items: center; gap: 0.35rem; font-weight: 600; font-size: 0.85rem">
+          <input type="radio" [disabled]="readOnly()" [checked]="form().handlesOtherCompanies === (v === 'Yes')"
+            (change)="setField('handlesOtherCompanies', v === 'Yes')" /> {{ v }}
+        </label>
+      }
+    </div>
+  </div>
+  @if (form().handlesOtherCompanies) {
+    <div class="field">
+      <label>4.a Name of the Company (competing products)</label>
+      <div style="display: flex; flex-direction: column; gap: 0.4rem">
+        @for (v of form().competingCompanies; track $index) {
+          <input class="input" [disabled]="readOnly()" [value]="v" placeholder="({{ competingLabels[$index] }})"
+            (input)="setCompany($index, inputValue($event))" />
+        }
+      </div>
+    </div>
+  }
+
+  <div class="field">
+    <label>5. Sales History (Last 2 years) — Cum Performance for the Year</label>
+    <div class="dtable-wrap">
+      <table class="dtable">
+        <thead><tr><th></th><th>Avg Sales / Month (₹L)</th><th>Growth (%)</th></tr></thead>
+        <tbody>
+          @for (yr of years; track yr) {
+            <tr>
+              <td class="strong">{{ yr.toUpperCase() }}</td>
+              <td>
+                <input class="input" type="number" [disabled]="readOnly()" value="{{ form().salesHistory[yr].avgSalesPerMonth }}"
+                  (input)="setSalesHistory(yr, 'avgSalesPerMonth', inputValue($event))" />
+              </td>
+              <td>
+                <input class="input" type="number" [disabled]="readOnly()" value="{{ form().salesHistory[yr].growthPct }}"
+                  (input)="setSalesHistory(yr, 'growthPct', inputValue($event))" />
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="field">
+    <label>6. If we are recommending Termination/Discontinuation, give reasons</label>
+    <select class="select" [disabled]="readOnly()" [value]="form().terminationReason"
+      (change)="setField('terminationReason', inputValue($event))">
+      @for (r of terminationReasons; track r) {
+        <option>{{ r }}</option>
+      }
+    </select>
+    @if (form().terminationReason === 'Others (plz give details)') {
+      <input class="input" style="margin-top: 0.4rem" [disabled]="readOnly()" [value]="form().terminationReasonOther ?? ''"
+        placeholder="If Others, please specify" (input)="setField('terminationReasonOther', inputValue($event))" />
+    }
+  </div>
+
+  <div class="field">
+    <label>7. If distributor has expressed his desire to discontinue his business relation with Acme Distribution</label>
+    <select class="select" [disabled]="readOnly()" [value]="form().distributorDesireReason"
+      (change)="setField('distributorDesireReason', inputValue($event))">
+      @for (r of distributorDesireReasons; track r) {
+        <option>{{ r }}</option>
+      }
+    </select>
+    @if (form().distributorDesireReason === 'Others (plz give details)') {
+      <input class="input" style="margin-top: 0.4rem" [disabled]="readOnly()" [value]="form().distributorDesireReasonOther ?? ''"
+        placeholder="If Others, please specify" (input)="setField('distributorDesireReasonOther', inputValue($event))" />
+    }
+  </div>
+
+  <div class="field">
+    <label>8. Stock value (₹L) as on date</label>
+    <input class="input" type="number" [disabled]="readOnly()" value="{{ form().stockValueLakh }}"
+      (input)="setStockValue(inputValue($event))" />
+  </div>
+  <div class="field">
+    <label>Action planned (if any)</label>
+    <div class="kv-grid">
+      <div class="field">
+        <label style="font-weight: 400; font-size: 0.76rem">A. Transferred to New Distributor</label>
+        <input class="input" [disabled]="readOnly()" [value]="form().actionPlanned.transferredTo ?? ''"
+          (input)="setActionPlanned('transferredTo', inputValue($event))" />
+      </div>
+      <div class="field">
+        <label style="font-weight: 400; font-size: 0.76rem">B. Liquidated in the market</label>
+        <input class="input" [disabled]="readOnly()" [value]="form().actionPlanned.liquidatedInMarket ?? ''"
+          (input)="setActionPlanned('liquidatedInMarket', inputValue($event))" />
+      </div>
+      <div class="field">
+        <label style="font-weight: 400; font-size: 0.76rem">C. Others</label>
+        <input class="input" [disabled]="readOnly()" [value]="form().actionPlanned.others ?? ''"
+          (input)="setActionPlanned('others', inputValue($event))" />
+      </div>
+    </div>
+  </div>
+
+  <div class="field">
+    <label>9. NDC submitted (Y/N)</label>
+    <div style="display: flex; gap: 1rem" [style.margin-bottom]="form().ndcSubmitted ? '0.5rem' : '0'">
+      @for (v of yesNo; track v) {
+        <label style="display: flex; align-items: center; gap: 0.35rem; font-weight: 600; font-size: 0.85rem">
+          <input type="radio" [disabled]="readOnly()" [checked]="form().ndcSubmitted === (v === 'Yes')"
+            (change)="setField('ndcSubmitted', v === 'Yes')" /> {{ v }}
+        </label>
+      }
+    </div>
+    @if (form().ndcSubmitted) {
+      <input class="input" [disabled]="readOnly()" [value]="form().ndcSubmittedTillMonth ?? ''" placeholder="Till which month, e.g. May-25"
+        (input)="setField('ndcSubmittedTillMonth', inputValue($event))" />
+    }
+  </div>
+</div>

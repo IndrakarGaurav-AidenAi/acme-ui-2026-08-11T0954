@@ -1,0 +1,65 @@
+<div>
+  <div class="page-head">
+    <h1>Communication <span class="page-info-ic" title="Threaded, case-level discussion powered by the Communication Agent — internal team threads and outbound partner nudges live side by side, and it auto-notifies whoever needs to reply next."><app-icon name="help" [size]="13"></app-icon></span></h1>
+  </div>
+
+  <div class="comm-layout">
+    <div class="thread-list">
+      @for (t of store.commThreads(); track t.code) {
+        <button class="thread-item" [class.sel]="store.selectedThreadCode() === t.code" (click)="store.setSelectedThreadCode(t.code)">
+          <div class="ti-top">
+            <span class="ti-code">{{ t.code }}</span>
+            <span [style.font-size]="'0.74rem'" [style.color]="'var(--ink-mute)'">{{ t.town }}</span>
+            <span class="avatar-stack" [style.margin-left]="'auto'">
+              @for (m of t.participants.slice(-3); track m.id) {
+                <span class="avatar" [style.background]="avatarColor(m.authorRole)">{{ avatarInitials(m.authorName) }}</span>
+              }
+            </span>
+          </div>
+          <div class="ti-partner">{{ t.partnerName }} @if (t.audience === 'partner') { <app-pill tone="ai">Partner email</app-pill> }</div>
+          <div class="ti-preview">{{ t.last }}</div>
+        </button>
+      }
+    </div>
+
+    <app-card>
+      <div class="thread-head">
+        <div>
+          <span class="ti-code" [style.font-size]="'0.85rem'">{{ thread().code }}</span> · {{ thread().partnerName }}, {{ thread().town }}
+        </div>
+        <app-pill tone="ai" [dot]="true">Communication Agent</app-pill>
+      </div>
+
+      @if (thread().audience === 'partner') {
+        <div class="notify-bar" [style.margin-bottom]="'0.8rem'">
+          <app-icon name="send" [size]="14"></app-icon> This is an outbound email thread to <strong [style.margin]="'0 0.25rem'">{{ thread().partnerName }}</strong> — not the internal case discussion.
+        </div>
+      }
+
+      <div class="msg-list">
+        @for (m of thread().participants; track m.id) {
+          <div class="msg-item">
+            <span class="avatar" [style.background]="avatarColor(m.authorRole)">{{ avatarInitials(m.authorName) }}</span>
+            <div class="bubble">
+              <div class="m-who">{{ m.authorName }} <span [style.color]="'var(--ink-mute)'" [style.font-weight]="500" [style.font-size]="'0.72rem'">· {{ roleLabel(m.authorRole) }}</span></div>
+              <div class="m-body">{{ m.body }}</div>
+            </div>
+          </div>
+        }
+      </div>
+
+      @if (nextReplier(); as nr) {
+        <div class="notify-bar">
+          <app-icon name="spark" [size]="14"></app-icon>
+          Communication Agent notified <strong [style.margin]="'0 0.25rem'">{{ roleLabel(nr.authorRole) }}</strong> — expected to reply next.
+        </div>
+      }
+
+      <form class="comm-compose" (ngSubmit)="send()">
+        <input [attr.placeholder]="thread().audience === 'partner' ? ('Email ' + thread().partnerName + '…') : 'Reply in this case thread…'" aria-label="Reply"
+          name="draft" [ngModel]="draft()" (ngModelChange)="draft.set($event)" />
+        <button class="btn primary sm" type="submit" [disabled]="!draft().trim()">Send</button>
+      </form>
+    </app-card>
+  </div>
+</div>

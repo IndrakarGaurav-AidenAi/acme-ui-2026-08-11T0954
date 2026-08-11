@@ -1,0 +1,153 @@
+@if (open(); as o) {
+  <div>
+    <div class="page-head">
+      <div class="row-between">
+        <button class="btn text sm" style="padding: 0" (click)="openId.set(null)">← Back to directory</button>
+        <app-button variant="ghost" size="sm" (click)="nudge()"><app-icon name="send" [size]="13" /> Nudge {{ o.legalName }}</app-button>
+      </div>
+    </div>
+    <app-profile-360 [data]="profileData()!" (askCopilot)="store.setCopilotOpen(true)" />
+  </div>
+} @else {
+  <div>
+    <div class="page-head">
+      <div class="row-between">
+        <div>
+          <h1>Partners <span class="page-info-ic" title="Monitor and manage all your partners in one place. Get a real-time view of their performance and status."><app-icon name="help" [size]="13" /></span></h1>
+        </div>
+        <div style="display: flex; gap: 0.5rem;">
+          @if (store.viewingAs() !== 'ase_asm') {
+            <app-button (click)="addPartner()"><app-icon name="new" [size]="14" /> Add Partner</app-button>
+          }
+        </div>
+      </div>
+    </div>
+
+    <div class="pt-summary">
+      @for (s of STATS(); track s.key) {
+        <button type="button" class="pt-stat pt-stat-btn" (click)="breakdown.set(s.key)">
+          <span class="pt-stat-ic pt-tone-{{ s.tone }}"><app-icon [name]="s.icon" [size]="17" /></span>
+          <div class="pt-stat-label">{{ s.label }}</div>
+          <div class="pt-stat-value">{{ s.value }}</div>
+          <div class="pt-stat-sub">{{ s.sub }}</div>
+          <span class="pt-stat-hint">What made this? →</span>
+        </button>
+      }
+    </div>
+
+    <div class="pt-toolbar">
+      <div class="tabs">
+        <button class="tab" [class.active]="filter() === 'all'" (click)="filter.set('all')">All Types</button>
+        @for (t of PARTNER_TYPES; track t.code) {
+          <button class="tab" [class.active]="filter() === t.code" (click)="filter.set(t.code)">{{ t.label.split(' ')[0] }}</button>
+        }
+      </div>
+      <div class="pt-toolbar-actions">
+        <span class="pt-search"><app-icon name="search" [size]="14" />
+          <input placeholder="Search partner, location…" [ngModel]="query()" (ngModelChange)="query.set($event)" />
+        </span>
+        <div class="pt-filter-wrap">
+          <app-button variant="ghost" size="sm" (click)="filtersOpen.set(!filtersOpen())">
+            <app-icon name="list" [size]="13" /> Filters{{ activeFilterCount() > 0 ? ' · ' + activeFilterCount() : '' }}
+          </app-button>
+          @if (filtersOpen()) {
+            <div class="pt-filter-pop">
+              <div class="pt-filter-group">
+                <div class="pt-filter-label">Status</div>
+                <div class="pt-filter-opts">
+                  @for (s of STATUS_FILTER_OPTIONS; track s) {
+                    <button class="pt-filter-chip" [class.on]="statusFilter() === s" (click)="statusFilter.set(s)">
+                      {{ statusChipLabel(s) }}
+                    </button>
+                  }
+                </div>
+              </div>
+              <div class="pt-filter-group">
+                <div class="pt-filter-label">State</div>
+                <div class="pt-filter-opts">
+                  <button class="pt-filter-chip" [class.on]="stateFilter() === 'all'" (click)="stateFilter.set('all')">All</button>
+                  @for (s of states(); track s) {
+                    <button class="pt-filter-chip" [class.on]="stateFilter() === s" (click)="stateFilter.set(s)">{{ s }}</button>
+                  }
+                </div>
+              </div>
+              <div class="pt-filter-foot">
+                <button class="btn text sm" (click)="clearFilters()">Clear</button>
+                <button class="btn sm" (click)="filtersOpen.set(false)">Done</button>
+              </div>
+            </div>
+          }
+        </div>
+        <app-button variant="ghost" size="sm"><app-icon name="documents" [size]="13" /> Download</app-button>
+      </div>
+    </div>
+
+    <div class="dtable-wrap">
+      <table class="dtable">
+        <thead><tr><th>Partner</th><th>Type</th><th>Location</th><th>Status</th><th>Monthly Sales</th><th>Growth</th><th>Actions</th></tr></thead>
+        <tbody>
+          @if (rows().length === 0) {
+            <tr><td colspan="7" style="text-align: center; color: var(--ink-mute); padding: 1.4rem 0">No partners match these filters.</td></tr>
+          }
+          @for (p of rows(); track p.id) {
+            <tr class="clickable" [class.pt-crit]="p.status === 'discontinued'" (click)="openId.set(p.id)">
+              <td>
+                <div class="pt-name-cell">
+                  <span class="pt-avatar" [style.background]="PARTNER_TYPE_COLOR[p.partnerType]">{{ initialsOf(p.legalName) }}</span>
+                  <div>
+                    <div class="pt-name">{{ p.legalName }}</div>
+                    <div class="pt-id">{{ p.dbCode ?? partnerId(p) }}</div>
+                  </div>
+                </div>
+              </td>
+              <td><span class="type-badge"><span class="d" [style.background]="PARTNER_TYPE_COLOR[p.partnerType]"></span>{{ partnerTypeLabel(p.partnerType).split(' ')[0] }}</span></td>
+              <td><span class="pt-loc"><app-icon name="target" [size]="13" />{{ p.town }}, {{ p.state }}</span></td>
+              <td><app-pill [tone]="statusPillData(p.status).tone" [dot]="true">{{ statusPillData(p.status).label }}</app-pill></td>
+              <td class="num tnum">{{ profiles()[p.id]?.kpis?.[0]?.value ?? '—' }}</td>
+              <td class="num" [class]="growthClass(p)">{{ growthRow(p).raw }}</td>
+              <td (click)="$event.stopPropagation()">
+                <div class="pt-row-actions">
+                  <app-button variant="ghost" size="sm" (click)="openId.set(p.id)">View</app-button>
+                  <button class="pt-menu-btn" title="More" aria-label="More actions">···</button>
+                </div>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+
+    <div class="pt-foot">
+      <span class="pt-foot-count">Showing 1 to {{ rows().length }} of {{ total() }} partners</span>
+      <div class="pt-pager">
+        <button disabled aria-label="Previous">‹</button>
+        <button class="on">1</button>
+        <button disabled aria-label="Next">›</button>
+      </div>
+    </div>
+
+    <app-modal [open]="!!breakdown()" [title]="breakdown() ? BREAKDOWN_TITLE[breakdown()!] : ''" (closed)="breakdown.set(null)">
+      <div class="pt-breakdown">
+        @if (breakdownRows(breakdown()).length === 0) {
+          <p class="muted-note">No partners contribute to this figure yet.</p>
+        } @else {
+          @for (row of breakdownRows(breakdown()); track row.p.id) {
+            <button class="pt-breakdown-row" (click)="selectBreakdownRow(row.p.id)">
+              <span class="pt-avatar sm" [style.background]="PARTNER_TYPE_COLOR[row.p.partnerType]">{{ initialsOf(row.p.legalName) }}</span>
+              <span class="pt-breakdown-main">
+                <span class="n">{{ row.p.legalName }}</span>
+                <span class="t">{{ row.p.town }}, {{ row.p.state }}</span>
+              </span>
+              <span class="pt-breakdown-metric">
+                <span class="v">{{ row.metric }}</span>
+                @if (row.pct != null) {
+                  <span class="bar"><i [style.width.%]="min100(absNum(row.pct))"></i></span>
+                }
+              </span>
+            </button>
+          }
+        }
+      </div>
+    </app-modal>
+  </div>
+}

@@ -1,0 +1,20 @@
+@if (!distributor) {
+  <div>
+    <div class="page-head">
+      <h1>Distributor profile <span class="page-info-ic" title="Open a distributor from a lead's matched list to see its profile."><app-icon name="help" [size]="13"></app-icon></span></h1>
+    </div>
+    <app-button (click)="goToLeads()">Go to Leads →</app-button>
+  </div>
+} @else {
+  <div>
+    <div class="page-head">
+      <div class="row-between">
+        <div>
+          <h1>{{ distributor.agency }} <span class="page-info-ic" title="Active distributor surfaced by the Lead Generation Agent — full 360° view, same as the Partners directory. Evaluate adds it to the New Application candidate pipeline so you can score it and move it through stages."><app-icon name="help" [size]="13"></app-icon></span></h1>
+        </div>
+        <app-button (click)="onEvaluate()">Evaluate →</app-button>
+      </div>
+    </div>
+    <app-profile-360 [data]="profileData()!" (askCopilot)="store.setCopilotOpen(true)"></app-profile-360>
+  </div>
+}

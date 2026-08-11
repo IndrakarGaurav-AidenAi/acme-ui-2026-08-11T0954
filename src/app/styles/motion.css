@@ -1,0 +1,38 @@
+/* Motion & micro-interactions — tasteful, fast, reduced-motion safe.
+   (theme.css already zeroes durations under prefers-reduced-motion.) */
+
+@keyframes rise { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+@keyframes fade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes pulse-dot {
+  0% { box-shadow: 0 0 0 0 rgba(34, 185, 138, 0.5); }
+  70% { box-shadow: 0 0 0 6px rgba(34, 185, 138, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(34, 185, 138, 0); }
+}
+
+/* Per-page entrance: the content block rises in, its direct children stagger. */
+.page > * { animation: rise 0.42s cubic-bezier(0.22, 0.61, 0.36, 1) both; }
+.page > *:nth-child(1) { animation-delay: 0.02s; }
+.page > *:nth-child(2) { animation-delay: 0.08s; }
+.page > *:nth-child(3) { animation-delay: 0.14s; }
+.page > *:nth-child(4) { animation-delay: 0.20s; }
+
+/* Stagger grid tiles (KPIs, cards) for a settled-in feel */
+.kpi-grid > *, .an-kpis > * { animation: rise 0.42s cubic-bezier(0.22, 0.61, 0.36, 1) both; }
+.kpi-grid > *:nth-child(2), .an-kpis > *:nth-child(2) { animation-delay: 0.06s; }
+.kpi-grid > *:nth-child(3), .an-kpis > *:nth-child(3) { animation-delay: 0.12s; }
+.kpi-grid > *:nth-child(4), .an-kpis > *:nth-child(4) { animation-delay: 0.18s; }
+
+/* Hover micro-interactions — lift interactive tiles a touch (borders, not shadows) */
+.kpi, .an-kpi { transition: border-color 0.16s ease, transform 0.16s ease; }
+.kpi:hover, .an-kpi:hover { transform: translateY(-2px); border-color: var(--border-strong); }
+
+.nav-item { transition: background 0.13s, color 0.13s, transform 0.08s; }
+.nav-item:active { transform: translateY(0.5px); }
+
+/* Row hover: slide the accent, not just tint */
+.dtable tbody tr.clickable { position: relative; }
+.dtable tbody tr.clickable td:first-child { box-shadow: inset 3px 0 0 transparent; transition: box-shadow 0.14s; }
+.dtable tbody tr.clickable:hover td:first-child { box-shadow: inset 3px 0 0 var(--ai); }
+
+/* Ambient live dot */
+.live-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--good); animation: pulse-dot 2.2s infinite; flex: none; }

@@ -1,0 +1,38 @@
+@if (!store.copilotOpen()) {
+  <button class="copilot-fab" (click)="store.setCopilotOpen(true)" title="Ask the Copilot" aria-label="Ask the Copilot">
+    <app-icon name="spark" [size]="24" />
+  </button>
+} @else {
+  <aside class="copilot-rail" role="complementary" aria-label="Copilot">
+    <div class="copilot-head">
+      <app-agent-badge [solid]="true">AI</app-agent-badge>
+      <span class="title">{{ COPILOT_LABEL }}</span>
+      <button class="x" (click)="store.setCopilotOpen(false)" aria-label="Close copilot">✕</button>
+    </div>
+
+    <div class="copilot-body">
+      @for (t of turns(); track $index; let isLast = $last) {
+        <div class="msg {{ t.role }}">
+          @if (t.role === 'ai') {
+            <div class="who"><app-agent-badge>AI</app-agent-badge> {{ COPILOT_LABEL }}</div>
+            @if (isLast) {
+              <app-streaming-text [text]="t.text" />
+            } @else {
+              <app-ai-text [text]="t.text" />
+            }
+          } @else {
+            {{ t.text }}
+          }
+        </div>
+      }
+    </div>
+
+    <div class="copilot-suggest">
+      @for (s of suggestions(); track s) {
+        <button (click)="ask(s)">{{ s }}</button>
+      }
+    </div>
+
+    <app-copilot-input (sent)="ask($event)" />
+  </aside>
+}

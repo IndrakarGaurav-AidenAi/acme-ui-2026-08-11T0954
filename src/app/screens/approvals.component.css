@@ -1,0 +1,95 @@
+/* Case review — AI Recommendation hero, snapshot tiles, approval journey, sticky Decision Panel. */
+.cr-layout { display: grid; grid-template-columns: 1fr; gap: 1.1rem; }
+.cr-layout.with-panel { grid-template-columns: 1fr 340px; align-items: start; }
+@media (max-width: 980px) { .cr-layout.with-panel { grid-template-columns: 1fr; } }
+.cr-main { display: flex; flex-direction: column; gap: 1.1rem; min-width: 0; }
+.cr-panel { position: sticky; top: 1rem; display: flex; flex-direction: column; gap: 1rem; }
+
+.cr-hero { display: grid; grid-template-columns: 1fr auto 1fr; gap: 1.4rem; align-items: center;
+  background: var(--warn-bg); border: 1px solid #f0dcae; border-radius: var(--r-lg); padding: 1.1rem 1.3rem; }
+@media (max-width: 760px) { .cr-hero { grid-template-columns: 1fr; } }
+.cr-hero-label { font-size: 0.66rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em;
+  color: var(--ink-mute); display: flex; align-items: center; gap: 0.3rem; margin-bottom: 0.4rem; }
+.cr-hero-route { font-size: 1.25rem; font-weight: 800; color: var(--ink); margin-bottom: 0.5rem; }
+.cr-hero-col { display: flex; flex-direction: column; }
+.cr-hero-col.center { align-items: center; text-align: center; }
+.cr-hero-reason { font-size: 0.82rem; color: var(--ink-soft); margin: 0.5rem 0 0.4rem; line-height: 1.45; }
+.cr-hero-toggle { background: none; border: none; padding: 0; color: var(--ai-text); font-weight: 700; font-size: 0.8rem; cursor: pointer; text-align: left; }
+
+.arc-gauge { position: relative; width: 140px; height: 82px; }
+.arc-gauge-value { position: absolute; left: 0; right: 0; bottom: 2px; text-align: center;
+  font-size: 1.3rem; font-weight: 800; color: var(--ink); font-variant-numeric: tabular-nums; }
+.arc-gauge-caption { text-align: center; font-size: 0.76rem; font-weight: 600; color: var(--ink-mute); margin-top: 0.15rem; }
+
+.cr-tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 0.75rem; }
+.cr-tile { background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--r-md);
+  padding: 0.8rem 0.9rem; display: flex; gap: 0.6rem; align-items: flex-start; }
+.cr-tile-ic { width: 30px; height: 30px; border-radius: 8px; background: var(--ai-bg); color: var(--ai-text);
+  display: grid; place-items: center; flex: none; }
+.cr-tile-v { font-size: 1.02rem; font-weight: 800; color: var(--ink); font-variant-numeric: tabular-nums; }
+.cr-tile-k { font-size: 0.71rem; color: var(--ink-mute); margin-top: 0.1rem; }
+.cr-tile-cap { font-size: 0.71rem; font-weight: 700; margin-top: 0.15rem; }
+
+.cr-insight-row { display: flex; align-items: flex-start; gap: 0.55rem; font-size: 0.85rem; color: var(--ink); padding: 0.3rem 0; }
+
+.cr-journey { display: flex; align-items: flex-start; overflow-x: auto; padding: 0.3rem 0 0.1rem; }
+.cr-step { display: flex; flex-direction: column; align-items: center; text-align: center; flex: 1;
+  min-width: 110px; position: relative; }
+.cr-step:not(:last-child)::after { content: ''; position: absolute; top: 14px; left: 55%; width: 90%; height: 2px;
+  background: var(--border-strong); z-index: 0; }
+.cr-step.done:not(:last-child)::after { background: var(--good); }
+.cr-step-marker { width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; z-index: 1;
+  border: 2px solid var(--border-strong); background: var(--surface); color: var(--ink-mute); flex: none; }
+.cr-step.done .cr-step-marker { background: var(--good); border-color: var(--good); color: #fff; }
+.cr-step.current .cr-step-marker { background: var(--ai); border-color: var(--ai); color: #fff; box-shadow: 0 0 0 4px var(--ai-bg); }
+.cr-step-label { font-size: 0.75rem; font-weight: 700; color: var(--ink); margin-top: 0.5rem; }
+.cr-step-cap { font-size: 0.67rem; color: var(--ink-mute); margin-top: 0.1rem; }
+.cr-step.current .cr-step-cap { color: var(--ai-text); font-weight: 700; }
+
+.cr-panel-route { font-size: 1.02rem; font-weight: 800; color: var(--ink); margin-top: 0.3rem; }
+.cr-panel-sub { font-size: 0.75rem; color: var(--ink-mute); margin-top: 0.1rem; margin-bottom: 0.8rem; }
+.cr-panel-stats { display: flex; gap: 1.3rem; padding: 0.7rem 0; border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border); margin-bottom: 0.8rem; }
+.cr-panel-stat .k { font-size: 0.66rem; color: var(--ink-mute); text-transform: uppercase; letter-spacing: 0.03em; }
+.cr-panel-stat .v { font-size: 1rem; font-weight: 800; color: var(--ink); margin-top: 0.2rem; }
+.cr-panel-h { font-size: 0.68rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.04em;
+  color: var(--ink-mute); margin-bottom: 0.4rem; }
+.cr-panel-reason { font-size: 0.85rem; color: var(--ink); margin: 0 0 0.9rem; }
+.cr-conditions { list-style: none; margin: 0 0 0.5rem; padding: 0; display: flex; flex-direction: column; gap: 0.3rem; }
+.cr-conditions li { font-size: 0.8rem; color: var(--ink-soft); padding-left: 1rem; position: relative; }
+.cr-conditions li::before { content: '•'; position: absolute; left: 0; color: var(--ai-text); }
+.cr-panel-attach { display: flex; flex-direction: column; gap: 0.4rem; margin-bottom: 0.9rem; }
+.cr-attach-row { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; font-size: 0.8rem; color: var(--ink-soft); }
+.cr-approve-row { display: flex; gap: 0.4rem; position: relative; }
+.cr-approve-menu { position: absolute; bottom: calc(100% + 0.4rem); right: 0; background: var(--surface);
+  border: 1px solid var(--border); border-radius: var(--r-md); box-shadow: var(--shadow-pop); padding: 0.35rem; z-index: 5; white-space: nowrap; }
+
+/* Financials Verification — Own Funds / CC Limit rows, matching the recommendation form layout. */
+.cr-fin-rows { display: flex; flex-direction: column; border: 1px solid var(--border); border-radius: var(--r-md); overflow: hidden; }
+.cr-fin-row { display: flex; justify-content: space-between; align-items: center; padding: 0.6rem 0.9rem; font-size: 0.85rem; border-bottom: 1px solid var(--border); }
+.cr-fin-row:last-child { border-bottom: none; }
+.cr-fin-row span { color: var(--ink-soft); }
+.cr-fin-row b { color: var(--ink); font-variant-numeric: tabular-nums; }
+.cr-fin-row.total { background: var(--surface-2); }
+.cr-fin-row.total b.crit { color: var(--crit-text); }
+.cr-fin-row.total b.good { color: var(--good-text); }
+
+/* Case History & Notes — chat thread + audit timeline surfaced before a decision is made. */
+.cr-hist-chat { display: flex; flex-direction: column; gap: 0.5rem; margin-bottom: 0.9rem; padding-bottom: 0.9rem; border-bottom: 1px solid var(--border); }
+.cr-hist-chat-row { display: flex; flex-direction: column; gap: 0.1rem; font-size: 0.82rem; }
+.cr-hist-chat-author { font-weight: 700; color: var(--ink); }
+.cr-hist-chat-role { font-weight: 500; color: var(--ink-mute); text-transform: capitalize; }
+.cr-hist-chat-body { color: var(--ink-soft); }
+.cr-hist-timeline { display: flex; flex-direction: column; }
+.cr-hist-item { display: flex; gap: 0.7rem; padding-bottom: 0.8rem; position: relative; }
+.cr-hist-item:not(:last-child)::before { content: ''; position: absolute; left: 5px; top: 14px; bottom: 0; width: 1.5px; background: var(--border); }
+.cr-hist-dot { flex: none; width: 12px; height: 12px; border-radius: 50%; margin-top: 2px; z-index: 1; }
+.cr-hist-dot.tone-ai { background: var(--ai); }
+.cr-hist-dot.tone-good { background: var(--good); }
+.cr-hist-dot.tone-warn { background: var(--warn); }
+.cr-hist-dot.tone-neutral { background: var(--ink-mute); }
+.cr-hist-body { flex: 1; min-width: 0; }
+.cr-hist-row { display: flex; align-items: baseline; justify-content: space-between; gap: 0.6rem; }
+.cr-hist-title { font-size: 0.85rem; font-weight: 700; color: var(--ink); }
+.cr-hist-when { font-size: 0.72rem; color: var(--ink-mute); white-space: nowrap; }
+.cr-hist-by { font-size: 0.75rem; color: var(--ink-mute); margin-top: 0.1rem; }

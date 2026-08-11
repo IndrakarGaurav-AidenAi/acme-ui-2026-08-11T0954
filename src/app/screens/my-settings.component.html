@@ -1,0 +1,335 @@
+<div class="ms">
+  <div class="ms-head">
+    <div class="ms-title">
+      <span class="ms-gear"><app-icon name="settings" [size]="22"></app-icon></span>
+      <div>
+        <h1>My Settings</h1>
+        <p>Manage your personal preferences and AI agent configuration.</p>
+      </div>
+    </div>
+    <div class="ms-hero" aria-hidden="true">
+      <div class="ms-hero-panel">
+        <span class="l w1"></span><span class="l w2"></span><span class="l w3"></span>
+      </div>
+      <span class="ms-hero-gear"><app-icon name="settings" [size]="30"></app-icon></span>
+    </div>
+  </div>
+
+  <!-- Profile / status strip -->
+  <div class="ms-profile card">
+    <div class="ms-stat ms-stat--profile">
+      <span class="ms-avatar" [style.background]="'var(' + role().colorVar + ')'">{{ initials(user().name) }}</span>
+      <div class="ms-stat-body">
+        <b>{{ displayName(user().name) }}</b>
+        <span>{{ role().label }}</span>
+        <button class="ms-edit" (click)="go('account')">Edit Profile</button>
+      </div>
+    </div>
+    <div class="ms-stat">
+      <span class="ms-tile tile-good"><app-icon name="mail" [size]="20"></app-icon></span>
+      <div class="ms-stat-body">
+        <b class="ms-stat-title">{{ connectedLabel() ? connectedLabel() + ' Connected' : 'No inbox connected' }}</b>
+        <span>{{ store.inboxAddress() || 'Connect a mailbox below' }}</span>
+      </div>
+    </div>
+    <div class="ms-stat">
+      <span class="ms-tile tile-good"><app-icon name="robot" [size]="20"></app-icon></span>
+      <div class="ms-stat-body">
+        <b class="ms-stat-title">AI Intake Agent <app-pill tone="good" [dot]="true">Active</app-pill></b>
+        <span>Drafting &amp; analyzing emails</span>
+      </div>
+    </div>
+    <div class="ms-stat">
+      <span class="ms-tile tile-ai"><app-icon name="send" [size]="20"></app-icon></span>
+      <div class="ms-stat-body">
+        <b class="ms-stat-title">Auto Forward <app-pill [tone]="store.autoForwardUnmatched() ? 'good' : 'neutral'">{{ store.autoForwardUnmatched() ? 'Enabled' : 'Off' }}</app-pill></b>
+        <span>Unmatched candidates</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Body: section rail + panels -->
+  <div class="ms-body">
+    <aside class="ms-rail">
+      <nav>
+        @for (s of sections(); track s.id) {
+          <button class="ms-navitem" [class.active]="active() === s.id" (click)="go(s.id)">
+            <span class="ic"><app-icon [name]="s.ic" [size]="17"></app-icon></span>
+            {{ s.label }}
+          </button>
+        }
+      </nav>
+      <div class="ms-help">
+        <span class="ms-help-ic"><app-icon name="help" [size]="18"></app-icon></span>
+        <div>
+          <b>Need help?</b>
+          <span>Learn more about settings</span>
+          <a href="#" (click)="$event.preventDefault()">View Docs <app-icon name="external" [size]="12"></app-icon></a>
+        </div>
+      </div>
+    </aside>
+
+    <div class="ms-panels">
+      <!-- Inbox Integration -->
+      <section id="ms-inbox" class="card ms-panel">
+        <div class="ms-panel-head">
+          <div>
+            <h3>Inbox Integration</h3>
+            <p>Connect and manage your email accounts used by the Intake Agent.</p>
+          </div>
+        </div>
+        <div class="provider-grid">
+          @for (p of PROVIDERS; track p.id) {
+            <div class="provider-card" [class.connected]="store.inboxProvider() === p.id">
+              <div class="provider-head">
+                <span class="provider-mark" [style.background]="p.color">{{ p.label[0] }}</span>
+                <div class="provider-headtext">
+                  <div class="provider-name">{{ p.label }}</div>
+                  @if (store.inboxProvider() === p.id) {
+                    <app-pill tone="good" [dot]="true">Connected</app-pill>
+                  } @else {
+                    <span class="provider-off">Not connected</span>
+                  }
+                </div>
+                @if (store.inboxProvider() === p.id) {
+                  <app-pill tone="good">Primary</app-pill>
+                }
+              </div>
+              @if (store.inboxProvider() === p.id) {
+                <div class="provider-address">{{ store.inboxAddress() }}</div>
+                <div class="provider-used">Used by AI Intake Agent</div>
+                <app-button variant="ghost" size="sm" (click)="store.disconnectInbox()">Disconnect</app-button>
+              } @else {
+                <p class="provider-blurb">{{ p.blurb }}</p>
+                <app-button variant="ghost" size="sm" (click)="connectProvider(p)">
+                  Connect {{ p.label }} <app-icon name="external" [size]="13"></app-icon>
+                </app-button>
+              }
+            </div>
+          }
+        </div>
+
+        <div class="ms-toggle-row">
+          <div>
+            <div class="ms-toggle-title">Auto-forward unmatched candidates to me</div>
+            <div class="ms-toggle-sub">You will receive a copy of anything the agent can’t confidently match.</div>
+          </div>
+          <app-toggle [on]="store.autoForwardUnmatched()" (toggled)="store.setAutoForwardUnmatched($event)">
+            <span class="ms-toggle-state">{{ store.autoForwardUnmatched() ? 'Enabled' : 'Off' }}</span>
+          </app-toggle>
+        </div>
+      </section>
+
+      <!-- AI Agent Settings -->
+      <section id="ms-agent" class="card ms-panel">
+        <div class="ms-panel-head">
+          <span class="ms-panel-ic"><app-icon name="robot" [size]="18"></app-icon></span>
+          <div>
+            <h3>AI Agent Settings</h3>
+            <p>Configure how the AI Intake Agent works for you.</p>
+          </div>
+        </div>
+        <div class="ms-agent-grid">
+          <div class="ms-agent-cell">
+            <div class="ms-toggle-title">Confidence threshold</div>
+            <div class="ms-toggle-sub">Minimum confidence score for auto actions</div>
+            <div class="ms-slider">
+              <input type="range" min="50" max="100" [ngModel]="confidence()" (ngModelChange)="confidence.set($event)"
+                name="confidence" aria-label="Confidence threshold" />
+              <span class="ms-slider-val tnum">{{ confidence() }}%</span>
+            </div>
+            <div class="ms-slider-scale"><span>50%</span><span>100%</span></div>
+          </div>
+          <div class="ms-agent-cell">
+            <div class="ms-toggle-title">Draft replies automatically</div>
+            <div class="ms-toggle-sub">Allow agent to draft email responses</div>
+            <app-toggle [on]="draftReplies()" (toggled)="draftReplies.set($event)">
+              <span class="ms-toggle-state">{{ draftReplies() ? 'Enabled' : 'Off' }}</span>
+            </app-toggle>
+          </div>
+          <div class="ms-agent-cell">
+            <div class="ms-toggle-title">Escalate low confidence cases</div>
+            <div class="ms-toggle-sub">Send low confidence cases for review</div>
+            <app-toggle [on]="escalate()" (toggled)="escalate.set($event)">
+              <span class="ms-toggle-state">{{ escalate() ? 'Enabled' : 'Off' }}</span>
+            </app-toggle>
+          </div>
+        </div>
+      </section>
+
+      <!-- SLA Timer — ASE/ASM only: how long a case gets before it counts as overdue -->
+      @if (isAseAsm()) {
+        <section id="ms-sla" class="card ms-panel">
+          <div class="ms-panel-head">
+            <span class="ms-panel-ic"><app-icon name="clock" [size]="18"></app-icon></span>
+            <div>
+              <h3>SLA Timer</h3>
+              <p>How long a newly flagged or routed case gets before it counts as overdue on Dashboard and Approvals.</p>
+            </div>
+          </div>
+          <div class="ms-agent-cell">
+            <div class="ms-toggle-title">Review window</div>
+            <div class="ms-toggle-sub">Applies to new cases you raise going forward — cases already in the queue keep their existing SLA.</div>
+            <div class="ms-sla-presets" style="display: flex; gap: 0.5rem; flex-wrap: wrap; margin: 0.6rem 0;">
+              @for (h of SLA_PRESETS; track h) {
+                <button class="btn sm" [class.ghost]="store.slaHours() !== h" (click)="store.setSlaHours(h)">
+                  {{ slaPresetLabel(h) }}
+                </button>
+              }
+            </div>
+            <label class="ms-field" style="max-width: 220px;">
+              <span>Custom (hours)</span>
+              <input class="input" type="number" min="1" max="168" [ngModel]="store.slaHours()" (ngModelChange)="onSlaHoursChange($event)"
+                name="slaHours" />
+            </label>
+            <p class="muted-note" style="margin-top: 0.5rem;">
+              Current setting: <b>{{ slaLabel(store.slaHours()) }}</b> per new case.
+            </p>
+          </div>
+        </section>
+      }
+
+      <!-- Remaining sections — lighter but real content -->
+      <section id="ms-automation" class="card ms-panel">
+        <div class="ms-panel-head">
+          <span class="ms-panel-ic"><app-icon name="bolt" [size]="18"></app-icon></span>
+          <div>
+            <h3>Automation</h3>
+            <p>Rules that run without you lifting a finger.</p>
+          </div>
+        </div>
+        <div class="ms-toggle-row">
+          <div>
+            <div class="ms-toggle-title">Auto-clear clean applications</div>
+            <div class="ms-toggle-sub">Skip manual review when every check passes.</div>
+          </div>
+          <app-toggle [on]="autoClearOn()" (toggled)="autoClearOn.set($event)">
+            <span class="ms-toggle-state">{{ autoClearOn() ? 'Enabled' : 'Off' }}</span>
+          </app-toggle>
+        </div>
+        <div class="ms-toggle-row">
+          <div>
+            <div class="ms-toggle-title">Nudge stalled cases</div>
+            <div class="ms-toggle-sub">Ping owners when a case sits idle for 48 hours.</div>
+          </div>
+          <app-toggle [on]="nudgeStalledOn()" (toggled)="nudgeStalledOn.set($event)">
+            <span class="ms-toggle-state">{{ nudgeStalledOn() ? 'Enabled' : 'Off' }}</span>
+          </app-toggle>
+        </div>
+        <div class="ms-toggle-row">
+          <div>
+            <div class="ms-toggle-title">Weekly digest</div>
+            <div class="ms-toggle-sub">Email me a summary of pipeline activity every Monday.</div>
+          </div>
+          <app-toggle [on]="weeklyDigestOn()" (toggled)="weeklyDigestOn.set($event)">
+            <span class="ms-toggle-state">{{ weeklyDigestOn() ? 'Enabled' : 'Off' }}</span>
+          </app-toggle>
+        </div>
+      </section>
+
+      <section id="ms-notifications" class="card ms-panel">
+        <div class="ms-panel-head">
+          <span class="ms-panel-ic"><app-icon name="bell" [size]="18"></app-icon></span>
+          <div>
+            <h3>Notifications</h3>
+            <p>Choose what reaches you and where.</p>
+          </div>
+        </div>
+        <div class="ms-toggle-row">
+          <div>
+            <div class="ms-toggle-title">New intake in my inbox</div>
+            <div class="ms-toggle-sub">When the agent files a new candidate.</div>
+          </div>
+          <app-toggle [on]="newIntakeOn()" (toggled)="newIntakeOn.set($event)">
+            <span class="ms-toggle-state">{{ newIntakeOn() ? 'Enabled' : 'Off' }}</span>
+          </app-toggle>
+        </div>
+        <div class="ms-toggle-row">
+          <div>
+            <div class="ms-toggle-title">Approvals waiting on me</div>
+            <div class="ms-toggle-sub">When a case needs my sign-off.</div>
+          </div>
+          <app-toggle [on]="approvalsWaitingOn()" (toggled)="approvalsWaitingOn.set($event)">
+            <span class="ms-toggle-state">{{ approvalsWaitingOn() ? 'Enabled' : 'Off' }}</span>
+          </app-toggle>
+        </div>
+        <div class="ms-toggle-row">
+          <div>
+            <div class="ms-toggle-title">Flagged financial checks</div>
+            <div class="ms-toggle-sub">When a candidate trips a finance gate.</div>
+          </div>
+          <app-toggle [on]="flaggedFinanceOn()" (toggled)="flaggedFinanceOn.set($event)">
+            <span class="ms-toggle-state">{{ flaggedFinanceOn() ? 'Enabled' : 'Off' }}</span>
+          </app-toggle>
+        </div>
+      </section>
+
+      <section id="ms-security" class="card ms-panel">
+        <div class="ms-panel-head">
+          <span class="ms-panel-ic"><app-icon name="shield" [size]="18"></app-icon></span>
+          <div>
+            <h3>Security</h3>
+            <p>Keep your account protected.</p>
+          </div>
+        </div>
+        <div class="ms-toggle-row">
+          <div>
+            <div class="ms-toggle-title">Two-factor authentication</div>
+            <div class="ms-toggle-sub">Require a second factor at sign-in.</div>
+          </div>
+          <app-toggle [on]="twoFactorOn()" (toggled)="twoFactorOn.set($event)">
+            <span class="ms-toggle-state">{{ twoFactorOn() ? 'Enabled' : 'Off' }}</span>
+          </app-toggle>
+        </div>
+        <div class="ms-toggle-row">
+          <div>
+            <div class="ms-toggle-title">Sign-in alerts</div>
+            <div class="ms-toggle-sub">Notify me of logins from a new device.</div>
+          </div>
+          <app-toggle [on]="signInAlertsOn()" (toggled)="signInAlertsOn.set($event)">
+            <span class="ms-toggle-state">{{ signInAlertsOn() ? 'Enabled' : 'Off' }}</span>
+          </app-toggle>
+        </div>
+        <div class="ms-toggle-row">
+          <div>
+            <div class="ms-toggle-title">Active sessions</div>
+            <div class="ms-toggle-sub">You’re signed in on 2 devices.</div>
+          </div>
+          <app-button variant="ghost" size="sm">Sign out others</app-button>
+        </div>
+      </section>
+
+      <section id="ms-account" class="card ms-panel">
+        <div class="ms-panel-head">
+          <span class="ms-panel-ic"><app-icon name="user" [size]="18"></app-icon></span>
+          <div>
+            <h3>Account</h3>
+            <p>Your profile details.</p>
+          </div>
+        </div>
+        <div class="ms-field-grid">
+          <label class="ms-field"><span>Full name</span><input class="input" [value]="displayName(user().name)" /></label>
+          <label class="ms-field"><span>Email</span><input class="input" [value]="user().email" /></label>
+          <label class="ms-field"><span>Role</span><input class="input" [value]="role().label" disabled /></label>
+          <label class="ms-field"><span>Region</span><input class="input" [value]="user().region" /></label>
+        </div>
+        <app-button size="sm">Save changes</app-button>
+      </section>
+
+      <section id="ms-activity" class="card ms-panel">
+        <div class="ms-panel-head">
+          <span class="ms-panel-ic"><app-icon name="list" [size]="18"></app-icon></span>
+          <div>
+            <h3>Activity Log</h3>
+            <p>Recent actions on your account.</p>
+          </div>
+        </div>
+        <ul class="ms-activity">
+          <li><span class="dot ai"></span><b>Outlook connected</b><time>Today, 09:14</time></li>
+          <li><span class="dot good"></span><b>Confidence threshold set to 85%</b><time>Yesterday, 16:02</time></li>
+          <li><span class="dot"></span><b>Signed in from Mumbai</b><time>Mon, 08:31</time></li>
+        </ul>
+      </section>
+    </div>
+  </div>
+</div>

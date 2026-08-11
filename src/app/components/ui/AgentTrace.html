@@ -1,0 +1,8 @@
+<div class="trace" role="log" aria-live="polite">
+  @for (line of visibleLines(); track $index) {
+    <div class="{{ line.tone ?? '' }}">{{ line.text }}</div>
+  }
+  @if (streaming()) {
+    <span class="caret">&nbsp;</span>
+  }
+</div>

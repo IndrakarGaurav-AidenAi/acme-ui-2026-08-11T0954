@@ -1,0 +1,4 @@
+<form class="copilot-input" (submit)="onSubmit($event)">
+  <input [value]="v()" (input)="onInput($event)" placeholder="Ask the copilot…" aria-label="Ask the copilot" />
+  <button class="btn primary sm" type="submit">Send</button>
+</form>

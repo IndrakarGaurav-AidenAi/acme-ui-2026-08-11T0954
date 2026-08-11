@@ -1,0 +1,56 @@
+/* GenAI surface treatment — gradient-bordered "AI panels", glow, generative
+   shimmer. Used to make agent/AI surfaces read as generative, not static cards. */
+
+.ai-panel {
+  position: relative;
+  border-radius: var(--r-lg);
+  background:
+    linear-gradient(var(--surface), var(--surface)) padding-box,
+    linear-gradient(135deg, var(--ai), #9b8cff 55%, #6ec8ff) border-box;
+  border: 1.5px solid transparent;
+  box-shadow: 0 12px 34px -20px rgba(123, 110, 245, 0.5);
+}
+.ai-panel.tint {
+  background:
+    linear-gradient(180deg, var(--ai-bg), var(--surface) 72%) padding-box,
+    linear-gradient(135deg, var(--ai), #9b8cff) border-box;
+}
+
+/* gradient "AI" chip */
+.ai-chip {
+  display: inline-flex; align-items: center; gap: 0.35rem;
+  font-size: 0.62rem; font-weight: 800; letter-spacing: 0.07em; text-transform: uppercase;
+  color: #fff; background: linear-gradient(135deg, var(--ai), #6f5ce6);
+  border-radius: 999px; padding: 0.26rem 0.62rem;
+  box-shadow: 0 4px 12px -4px rgba(123, 110, 245, 0.6);
+}
+
+/* gradient text accent */
+.ai-grad {
+  background: linear-gradient(120deg, var(--ai-strong), #6ec8ff);
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+
+/* generative shimmer (for "thinking"/streaming labels) */
+@keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+.shimmer-text {
+  background: linear-gradient(90deg, var(--ink-mute) 25%, var(--ai) 50%, var(--ink-mute) 75%);
+  background-size: 200% 100%;
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+  animation: shimmer 1.6s linear infinite;
+}
+
+/* soft ambient glow behind an AI accent element */
+.ai-glow { position: relative; }
+.ai-glow::before {
+  content: ''; position: absolute; inset: -1px; border-radius: inherit; z-index: -1;
+  background: radial-gradient(60% 120% at 15% 0%, rgba(123,110,245,0.18), transparent 70%);
+  pointer-events: none;
+}
+
+/* confidence ring (small radial gauge) */
+.conf-ring { --v: 0; width: 40px; height: 40px; border-radius: 50%; flex: none;
+  background: conic-gradient(var(--ai) calc(var(--v) * 1%), var(--surface-3) 0);
+  display: grid; place-items: center; }
+.conf-ring > span { width: 30px; height: 30px; border-radius: 50%; background: var(--surface);
+  display: grid; place-items: center; font-size: 0.62rem; font-weight: 800; color: var(--ai-text); font-variant-numeric: tabular-nums; }

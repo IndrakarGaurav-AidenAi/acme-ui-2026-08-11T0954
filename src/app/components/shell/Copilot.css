@@ -1,0 +1,55 @@
+/* Copilot as an in-flow right rail — it takes its own column in the shell grid
+   (see .shell.with-copilot) so it never covers the page content. */
+.copilot-rail { position: sticky; top: 0; height: 100vh; align-self: start;
+  background: var(--surface); border-left: 1px solid var(--border);
+  display: flex; flex-direction: column; min-width: 0; }
+
+.copilot-head { display: flex; align-items: center; gap: 0.55rem; padding: 0.85rem 1rem; border-bottom: 1px solid var(--border); }
+.copilot-head .title { font-weight: 800; font-size: 0.9rem; }
+.copilot-head .x { margin-left: auto; background: none; border: none; color: var(--ink-mute); cursor: pointer; font-size: 1rem; padding: 0.15rem 0.35rem; border-radius: 6px; }
+.copilot-head .x:hover { background: var(--surface-3); color: var(--ink); }
+.copilot-agent-row { padding: 0.65rem 1rem; border-bottom: 1px solid var(--border); }
+.copilot-agent-row select { width: 100%; }
+
+/* min-height: 0 overrides the flex default of "never shrink below content size" — without it,
+   a long AI reply grows this column past the rail's fixed height instead of scrolling inside it,
+   and the suggestion chips below end up rendering over the cut-off tail of the message. */
+.copilot-body { padding: 1rem; flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 0.75rem; }
+.msg { font-size: 0.84rem; line-height: 1.6; max-width: 92%; overflow-wrap: break-word; }
+/* Unscoped (not .msg-only) — formatAiText()'s output (AiText/StreamingText) also renders
+   outside the Copilot rail, e.g. the Dashboard's AI Insight card. */
+.ai-para { margin: 0 0 0.65rem; }
+.ai-para:last-child { margin-bottom: 0; }
+.ai-bullets { display: flex; flex-direction: column; gap: 0.4rem; margin: 0 0 0.65rem; }
+.ai-bullets:last-child { margin-bottom: 0; }
+.ai-bullet { display: flex; align-items: flex-start; gap: 0.45rem; }
+.ai-bullet-dot { flex: none; color: var(--ai-text); }
+.ai-bullet-body { flex: 1; min-width: 0; }
+.msg.user { align-self: flex-end; background: var(--ai); color: #fff; border-radius: 14px 14px 4px 14px; padding: 0.5rem 0.8rem; white-space: pre-line; }
+.msg.ai { align-self: flex-start; background: var(--surface-2); border: 1px solid var(--border); color: var(--ink-soft); border-radius: 14px 14px 14px 4px; padding: 0.65rem 0.85rem; }
+.msg.ai .who { display: flex; align-items: center; gap: 0.4rem; font-size: 0.7rem; font-weight: 700; color: var(--ai-text); margin-bottom: 0.35rem; }
+
+.copilot-suggest { display: flex; flex-wrap: wrap; gap: 0.4rem; padding: 0.7rem 1rem; flex: none;
+  border-top: 1px solid var(--border); background: var(--surface); }
+.copilot-suggest button { font-size: 0.74rem; color: var(--ai-text); background: var(--ai-bg); border: 1px solid var(--ai-border); border-radius: 999px; padding: 0.32rem 0.65rem; cursor: pointer; }
+.copilot-suggest button:hover { background: #dde7ff; }
+
+.copilot-input { display: flex; gap: 0.4rem; padding: 0.8rem 1rem; border-top: 1px solid var(--border); }
+.copilot-input input { flex: 1; font-size: 0.84rem; border: 1px solid var(--border-strong); border-radius: 999px; padding: 0.55rem 0.85rem; background: var(--surface-2); color: var(--ink); }
+.copilot-input input:focus { outline: 2px solid var(--ai); outline-offset: 0; border-color: var(--ai); }
+
+/* floating open button — a small AI bot (icon only). Stacked directly above the login-page
+   support chat widget's own floating button (LoginChatWidget.css .chat-fab, bottom: 1.5rem),
+   so both are reachable in the same corner instead of one hiding the other. */
+.copilot-fab { position: fixed; right: 1.4rem; bottom: 5.7rem; z-index: 55; width: 54px; height: 54px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center; color: #fff; border: none; cursor: pointer;
+  background: linear-gradient(150deg, #7b6ef5, #6350d6); box-shadow: 0 12px 26px -8px rgba(123, 110, 245, 0.7); transition: transform 0.15s; }
+.copilot-fab:hover { transform: scale(1.06); }
+.copilot-fab::after { content: ''; position: absolute; inset: 0; border-radius: 50%; box-shadow: 0 0 0 0 rgba(123, 110, 245, 0.5);
+  animation: fab-pulse 2.4s infinite; }
+@keyframes fab-pulse { 0% { box-shadow: 0 0 0 0 rgba(123,110,245,0.45); } 70% { box-shadow: 0 0 0 12px rgba(123,110,245,0); } 100% { box-shadow: 0 0 0 0 rgba(123,110,245,0); } }
+
+/* On narrow screens there's no room for a third column — overlay instead. */
+@media (max-width: 960px) {
+  .copilot-rail { position: fixed; top: 0; right: 0; bottom: 0; width: min(390px, 100%); z-index: 60; box-shadow: var(--shadow-pop); }
+}

@@ -1,0 +1,6 @@
+.doc-viewer-page { min-height: 100vh; background: var(--surface-2); }
+.doc-viewer-head { display: flex; align-items: center; justify-content: space-between; gap: 1rem;
+  padding: 0.8rem 1.2rem; background: var(--surface); border-bottom: 1px solid var(--border);
+  position: sticky; top: 0; z-index: 5; }
+.doc-viewer-title { font-weight: 800; color: var(--ink); font-size: 0.95rem; }
+.doc-viewer-body { padding: 1.4rem; display: flex; justify-content: center; }

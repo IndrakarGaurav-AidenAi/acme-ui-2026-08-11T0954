@@ -1,0 +1,99 @@
+<div class="login-wrap">
+  <aside class="login-aside">
+    <div class="aside-aurora" aria-hidden="true"></div>
+    <div class="aside-grid" aria-hidden="true"></div>
+
+    <div class="aside-top">
+      <div class="login-brand"><app-brand-mark></app-brand-mark></div>
+      <span class="aside-badge">AIDENAI × Acme Distribution</span>
+    </div>
+
+    <div class="aside-mid">
+      <span class="aside-eyebrow"><span class="dot"></span> Agentic operations platform</span>
+      <h2>Distributor onboarding,<br /><span class="ai-grad">run by agents.</span></h2>
+      <p class="lede">One templatized workspace where AI agents rank candidates, run the
+        approval matrix, route flagged cases, and answer questions — while your team stays in control.</p>
+
+      <div class="pipe" aria-hidden="true">
+        <div class="pipe-head">
+          <span class="pipe-live"><span class="dot"></span> ORCHESTRATION</span>
+          <span class="pipe-meta">6 agents · streaming</span>
+        </div>
+        <div class="pipe-rail">
+          @for (a of PIPELINE; track a.name; let i = $index) {
+            <div class="pipe-node" [style.animation-delay]="(0.25 + i * 0.16) + 's'">
+              <span class="pipe-glyph"><span class="pulse" [style.animation-delay]="(i * 0.4) + 's'"></span></span>
+              <span class="pipe-body">
+                <span class="pipe-name">{{ a.name }}</span>
+                <span class="pipe-sub">{{ a.sub }}</span>
+              </span>
+              <span class="pipe-rt">{{ a.rt }}</span>
+            </div>
+          }
+        </div>
+      </div>
+    </div>
+
+    <div class="aside-bottom">
+      <div class="hero-stats">
+        @for (hs of HERO_STATS; track hs[1]) {
+          <div class="hero-stat">
+            <span class="hs-v">{{ hs[0] }}</span>
+            <span class="hs-l">{{ hs[1] }}</span>
+          </div>
+        }
+      </div>
+      <div class="login-foot">PROTOTYPE · SIMULATED AGENTS · STAPLES DIVISION</div>
+    </div>
+  </aside>
+
+  <main class="login-main">
+    <form class="login-card" (ngSubmit)="submit()" novalidate>
+      <div class="login-logo-sm"><app-brand-mark variant="full"></app-brand-mark></div>
+      <div class="eyebrow">Welcome back</div>
+      <h1>Sign in to your workspace</h1>
+      <p class="sub">Use your Acme Distribution credentials — pick a demo persona below to prefill one.</p>
+
+      <div class="field">
+        <label for="email">Work email</label>
+        <input id="email" name="email" class="input" type="email" autocomplete="username"
+          [ngModel]="email()" (ngModelChange)="onEmailChange($event)" placeholder="you@acme.in" />
+      </div>
+
+      <div class="field">
+        <label for="pw">Password</label>
+        <div class="pw-wrap">
+          <input id="pw" name="password" class="input" [type]="showPw() ? 'text' : 'password'" autocomplete="current-password"
+            [ngModel]="password()" (ngModelChange)="onPasswordChange($event)" placeholder="••••••••" />
+          <button type="button" class="pw-toggle" (click)="togglePw()">{{ showPw() ? 'Hide' : 'Show' }}</button>
+        </div>
+      </div>
+
+      @if (error()) {
+        <div class="login-error" role="alert">{{ error() }}</div>
+      }
+
+      <div class="login-meta">
+        <label class="remember">
+          <input type="checkbox" name="remember" [ngModel]="remember()" (ngModelChange)="remember.set($event)" /> Remember me
+        </label>
+        <a href="#" (click)="$event.preventDefault()">Forgot password?</a>
+      </div>
+
+      <app-button type="submit" [disabled]="loading()" class="login-submit">
+        {{ loading() ? 'Signing in…' : 'Sign in as ' + selectedRoleLabel() + ' →' }}
+      </app-button>
+
+      <div class="login-divider"><span>Demo access — sign in as</span></div>
+      <div class="demo-chips">
+        @for (r of ROLES; track r.code) {
+          <button type="button" class="demo-chip" [class.sel]="role() === r.code" (click)="pickRole(r.code)">
+            <span class="cd" [style.background]="'var(' + r.colorVar + ')'"></span>{{ r.label }}
+          </button>
+        }
+      </div>
+    </form>
+  </main>
+
+  <app-login-chat-widget />
+</div>

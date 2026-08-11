@@ -1,0 +1,120 @@
+@if (open(); as g) {
+  <div>
+    <div class="page-head">
+      <button class="btn text sm" style="padding: 0" (click)="back()">← Back to grievances</button>
+    </div>
+
+    <div class="grv-detail">
+      <div class="grv-main card">
+        <div class="grv-detail-head">
+          <div>
+            <div class="grv-idrow">
+              <span class="code">{{ g.id }}</span>
+              <app-pill [tone]="statusTone(g.status)" [dot]="true">{{ STATUS_LABEL[g.status] }}</app-pill>
+              <app-pill [tone]="priorityTone(g.priority)">{{ priorityLabel(g.priority) }}</app-pill>
+            </div>
+            <h2>{{ g.subject }}</h2>
+            <div class="grv-meta">
+              <span class="type-badge"><span class="d" [style.background]="CATEGORY_TONE[g.category]"></span>{{ g.category }}</span>
+              <span>· {{ g.distributor }}, {{ g.town }}</span>
+              <span>· via {{ g.channel }}</span>
+            </div>
+          </div>
+          <app-button variant="ghost" size="sm" (click)="askCopilot()"><app-icon name="spark" [size]="13" /> Ask copilot</app-button>
+        </div>
+
+        <p class="grv-body">{{ g.detail }}</p>
+
+        <div class="grv-timeline">
+          <div class="card-title">Activity</div>
+          @for (u of g.updates; track $index) {
+            <div class="grv-event">
+              <span class="grv-dot"></span>
+              <div>
+                <div class="grv-event-note">{{ u.note }}</div>
+                <div class="grv-event-meta">{{ u.by }} · {{ u.on }}</div>
+              </div>
+            </div>
+          }
+        </div>
+      </div>
+
+      <aside class="grv-side">
+        <div class="card">
+          <div class="card-title">Details</div>
+          <div class="kv-grid">
+            <div class="kv"><div class="k">Raised on</div><div class="v">{{ g.raisedOn }}</div></div>
+            <div class="kv"><div class="k">Age</div><div class="v">{{ g.ageDays }}d</div></div>
+            <div class="kv"><div class="k">Owner team</div><div class="v" style="font-size: 0.85rem">{{ owner() }}</div></div>
+            <div class="kv"><div class="k">SLA</div><div class="v" style="font-size: 0.85rem" [style.color]="g.isOverdue ? 'var(--crit-text)' : 'var(--ink)'">{{ g.slaLabel }}</div></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">Update status</div>
+          <div class="grv-status-actions">
+            @for (s of statuses; track s) {
+              <button class="grv-status-btn" [class.active]="g.status === s" [disabled]="g.status === s" (click)="setStatus(g.id, s)">
+                {{ STATUS_LABEL[s] }}
+              </button>
+            }
+          </div>
+          <p class="muted-note" style="margin-top: 0.7rem">Changing status is logged to the activity trail.</p>
+        </div>
+
+        <div class="card">
+          <div class="card-title">Distributor update</div>
+          <p class="muted-note" style="margin-top: 0">
+            Send a holding reply letting {{ g.distributor }} know the review is underway — moves this to In progress and opens the thread in Communication.
+          </p>
+          <app-button size="sm" (click)="emailDistributor(g.id)" [disabled]="alreadyEmailed()">
+            <app-icon name="mail" [size]="13" /> {{ alreadyEmailed() ? 'Update already sent' : 'Email distributor' }}
+          </app-button>
+        </div>
+      </aside>
+    </div>
+  </div>
+} @else {
+  <div>
+    <div class="page-head">
+      <h1>Grievances <span class="page-info-ic" title="Issues raised by distributors — payments, supply, scheme claims, logistics and access. The Intake Agent logs and classifies incoming grievances; the right team picks them up and resolves against SLA."><app-icon name="help" [size]="13" /></span></h1>
+    </div>
+
+    <div class="kpi-grid grv-kpis">
+      <div class="kpi"><div class="k-label">Open</div><div class="k-value">{{ counts().open }}</div></div>
+      <div class="kpi"><div class="k-label">In progress</div><div class="k-value">{{ counts().in_progress }}</div></div>
+      <div class="kpi"><div class="k-label">Resolved</div><div class="k-value">{{ counts().resolved }}</div></div>
+      <div class="kpi"><div class="k-label">SLA breached</div><div class="k-value" [style.color]="counts().overdue ? 'var(--crit-text)' : 'var(--ink)'">{{ counts().overdue }}</div></div>
+    </div>
+
+    <div class="tabs" style="margin-bottom: 1rem">
+      @for (f of filters; track f) {
+        <button class="tab" [class.active]="filter() === f" (click)="setFilter(f)">
+          {{ tabLabel(f) }}
+        </button>
+      }
+    </div>
+
+    <div class="dtable-wrap">
+      <table class="dtable">
+        <thead><tr><th>ID</th><th>Distributor</th><th>Subject</th><th>Category</th><th>Priority</th><th>Raised</th><th>SLA</th><th>Status</th></tr></thead>
+        <tbody>
+          @for (g of rows(); track g.id) {
+            <tr class="clickable" (click)="openGrievance(g.id)">
+              <td><span class="code">{{ g.id }}</span></td>
+              <td class="strong">{{ g.distributor }}<div class="grv-sub">{{ g.town }}</div></td>
+              <td>{{ g.subject }}</td>
+              <td><span class="type-badge"><span class="d" [style.background]="CATEGORY_TONE[g.category]"></span>{{ g.category }}</span></td>
+              <td><app-pill [tone]="priorityTone(g.priority)">{{ priorityLabel(g.priority) }}</app-pill></td>
+              <td class="grv-nowrap">{{ g.raisedOn }}</td>
+              <td><span class="grv-sla" [class.overdue]="g.isOverdue">{{ g.slaLabel }}</span></td>
+              <td><app-pill [tone]="statusTone(g.status)" [dot]="true">{{ STATUS_LABEL[g.status] }}</app-pill></td>
+            </tr>
+          } @empty {
+            <tr><td colspan="8" style="text-align: center; color: var(--ink-mute); padding: 2rem">No grievances in this view.</td></tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  </div>
+}

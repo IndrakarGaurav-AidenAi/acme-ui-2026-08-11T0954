@@ -1,0 +1,123 @@
+/* Acme Distribution Partner Platform — soft violet SaaS theme (per reference screenshot).
+   Light, rounded, friendly; violet = the AI/primary accent, with green/amber/red
+   as separate status colors. Self-hosted fonts (no CDN). */
+@import '@fontsource-variable/plus-jakarta-sans';
+@import '@fontsource-variable/jetbrains-mono';
+
+:root {
+  /* grounds — near-white canvas so cards sit embedded in the screen (hairline borders
+     delineate them) instead of floating as white boxes on lavender */
+  --bg: #fafafd;
+  --surface: #ffffff;
+  --surface-2: #f5f4fb;
+  --surface-3: #eeecf8;
+
+  /* sidebar — white, with a lavender active pill */
+  --sidebar: #ffffff;
+  --sidebar-hover: #f5f4fb;
+  --sidebar-text: #5b6072;
+  --sidebar-text-active: #6c5ce7;
+
+  /* hairlines */
+  --border: #e4e3ef;
+  --border-strong: #d5d3e6;
+
+  /* ink — cool near-black with a faint violet bias */
+  --ink: #1b1c2b;
+  --ink-soft: #5c6076;
+  --ink-mute: #9599ad;
+
+  /* AI / primary accent — violet */
+  --ai: #7b6ef5;
+  --ai-strong: #6a5ae0;
+  --ai-text: #6350d6;
+  --ai-bg: #f1eefe;
+  --ai-border: #e3ddfb;
+
+  /* persona colors (distinct hues, harmonized with the violet accent) */
+  --p-ase: #4c8dff;
+  --p-finance: #7b6ef5;
+  --p-channel: #22b98a;
+  --p-mdm: #e05aa0;
+  --p-leadership: #e0972a;
+
+  /* semantic status — separate from the accent */
+  --good: #22b98a;
+  --good-bg: #e2f7ef;
+  --good-text: #10855f;
+  --warn: #e8a53d;
+  --warn-bg: #fdf1dd;
+  --warn-text: #a56a12;
+  --crit: #f16d6d;
+  --crit-bg: #fdeaea;
+  --crit-text: #cf4949;
+
+  /* machine-voice surface (reasoning trace) */
+  --machine: #1c1d2e;
+  --machine-ink: #d8d7ea;
+
+  /* chart palette */
+  --chart-1: #7b6ef5; /* violet */
+  --chart-2: #22b98a; /* green  */
+  --chart-3: #f16d6d; /* red    */
+  --chart-4: #b9aef9; /* light violet */
+  --chart-5: #4c8dff; /* blue   */
+
+  /* type */
+  --font-sans: 'Plus Jakarta Sans Variable', system-ui, -apple-system, sans-serif;
+  --font-mono: 'JetBrains Mono Variable', ui-monospace, Consolas, monospace;
+
+  /* radii — soft & rounded */
+  --r-sm: 8px;
+  --r-md: 12px;
+  --r-lg: 16px;
+  --r-xl: 22px;
+
+  /* shadows — surfaces sit flat/embedded (border does the work); shadow only for
+     things that genuinely float (copilot, tooltips, popovers, the FAB). */
+  --shadow-card: none;
+  --shadow-raise: 0 2px 8px -3px rgba(40, 32, 90, 0.12);
+  --shadow-pop: 0 20px 48px -18px rgba(40, 32, 90, 0.32);
+}
+
+* { box-sizing: border-box; }
+html, body, #root { height: 100%; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  font-size: 15px;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+button, select, input, textarea { font-family: inherit; }
+
+h1, h2, h3, h4 { font-weight: 800; letter-spacing: -0.02em; text-wrap: balance; color: var(--ink); margin: 0; }
+p { line-height: 1.6; margin: 0; color: var(--ink-soft); }
+a { color: var(--ai-text); text-decoration: none; }
+
+/* small muted label */
+.mono-label {
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  color: var(--ink-mute);
+}
+
+.tnum { font-variant-numeric: tabular-nums; }
+
+::selection { background: var(--ai-bg); }
+
+* { scrollbar-width: thin; scrollbar-color: var(--border-strong) transparent; }
+*::-webkit-scrollbar { width: 9px; height: 9px; }
+*::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 999px; }
+*::-webkit-scrollbar-track { background: transparent; }
+
+:focus-visible { outline: 2px solid var(--ai); outline-offset: 2px; }
+
+@media (prefers-reduced-motion: reduce) {
+  * { animation-duration: 0.001ms !important; transition-duration: 0.001ms !important; }
+}

@@ -1,0 +1,56 @@
+<div>
+  <div class="page-head">
+    <h1>AI Agents <span class="page-info-ic" title="Every specialist agent working this platform — what it does, where it acts, and what it's done recently."><app-icon name="help" [size]="13"></app-icon></span></h1>
+  </div>
+
+  <div class="stack" [style.display]="'grid'" [style.grid-template-columns]="'repeat(auto-fill, minmax(320px, 1fr))'" [style.gap]="'1rem'">
+    @for (a of agents; track a.id) {
+      <app-card>
+        <div class="row-between" [style.align-items]="'flex-start'">
+          <div [style.display]="'flex'" [style.gap]="'0.6rem'" [style.align-items]="'center'">
+            <span
+              [style.width.px]="34"
+              [style.height.px]="34"
+              [style.border-radius.px]="9"
+              [style.display]="'grid'"
+              [style.place-items]="'center'"
+              [style.background]="'color-mix(in srgb, var(' + a.colorVar + ') 16%, transparent)'"
+              [style.color]="'var(' + a.colorVar + ')'"
+            >
+              <app-icon [name]="a.icon" [size]="17"></app-icon>
+            </span>
+            <div>
+              <div class="strong" [style.font-size]="'0.94rem'">{{ a.label }}</div>
+              <app-pill [tone]="a.status === 'active' ? 'ai' : 'neutral'" [dot]="true">{{ a.status === 'active' ? 'Active' : 'Standby' }}</app-pill>
+            </div>
+          </div>
+          <app-agent-badge [solid]="true">AI</app-agent-badge>
+        </div>
+
+        <p [style.margin]="'0.75rem 0 0.4rem'">{{ a.tagline }}</p>
+        <p class="muted-note" [style.margin]="0">{{ a.detail }}</p>
+
+        <div [style.margin]="'0.85rem 0'">
+          <div class="muted-note" [style.font-weight]="700" [style.margin-bottom]="'0.35rem'">Recent activity</div>
+          <ul [style.margin]="0" [style.padding-left]="'1.1rem'" [style.display]="'flex'" [style.flex-direction]="'column'" [style.gap]="'0.25rem'">
+            @for (line of a.recentActivity; track line) {
+              <li class="muted-note">{{ line }}</li>
+            }
+          </ul>
+        </div>
+
+        <div class="row-between">
+          <a [routerLink]="a.homeRoute"><app-button size="sm" variant="ghost">{{ a.homeLabel }}</app-button></a>
+          @if (a.copilotAgent) {
+            <app-button
+              size="sm"
+              (click)="store.setCopilotAgent(a.copilotAgent); store.setCopilotOpen(true)"
+            >
+              Ask this agent
+            </app-button>
+          }
+        </div>
+      </app-card>
+    }
+  </div>
+</div>

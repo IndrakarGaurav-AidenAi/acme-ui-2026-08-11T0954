@@ -1,0 +1,11 @@
+/* Angular's emulated view encapsulation scopes each component's CSS to its own template, so a
+   parent stylesheet (e.g. login.component.css's `.login-brand .brand-img`) can never reach these
+   elements — they belong to this component's template, not the parent's. Sizing instead comes
+   from a custom property set by whichever wrapper renders <app-brand-mark>, since custom
+   properties inherit normally regardless of encapsulation. Defaults cover any wrapper that
+   doesn't bother setting one. */
+:host { display: inline-flex; }
+.brand-img { height: var(--brand-mark-size, 40px); width: auto; max-width: 100%; object-fit: contain; display: block; }
+.mark { width: var(--brand-mark-size, 40px); height: var(--brand-mark-size, 40px); border-radius: 10px;
+  background: linear-gradient(150deg, #7b6ef5, #6350d6); color: #fff; display: flex; align-items: center;
+  justify-content: center; font-family: var(--font-mono, monospace); font-weight: 700; }

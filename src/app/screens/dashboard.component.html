@@ -1,0 +1,193 @@
+<div>
+  <div class="page-head">
+    <div class="row-between">
+      <div>
+        <h1>{{ role().label }} dashboard <span class="page-info-ic" [title]="role().blurb"><app-icon name="help" [size]="13"></app-icon></span></h1>
+      </div>
+      <app-button variant="ghost" size="sm" (click)="exportView()">
+        <app-icon name="download" [size]="14"></app-icon> Export / Share <app-icon name="chevronDown" [size]="12"></app-icon>
+      </app-button>
+    </div>
+  </div>
+
+  <!-- AI insight banner -->
+  <div class="dash-insight">
+    <span class="di-ic"><app-icon name="spark" [size]="18"></app-icon></span>
+    <div class="di-body">
+      <div class="di-tag">AI Insight</div>
+      <!-- text changes when persona changes, so the streaming component restarts on its own -->
+      <div class="di-text"><app-streaming-text [text]="dash().insight" [speed]="14"></app-streaming-text></div>
+    </div>
+    <app-button variant="ghost" size="sm" (click)="store.askCopilot('Catch me up on today')">View full insight →</app-button>
+  </div>
+
+  <!-- KPI row -->
+  <div class="kpi-grid">
+    @for (k of dash().kpis; track k.label; let i = $index) {
+      <div class="kpi" [class.accent]="!!k.accent">
+        <div class="kpi-head">
+          <span class="kpi-ic" [style.background]="'color-mix(in srgb, ' + KPI_COLORS[i % 4] + ' 14%, transparent)'" [style.color]="KPI_COLORS[i % 4]">
+            <app-icon [name]="KPI_ICONS[i % 4]" [size]="14"></app-icon>
+          </span>
+          <span class="k-label">{{ k.label }}</span>
+        </div>
+        <div class="kpi-foot">
+          <div>
+            <div class="k-value">{{ k.value }}</div>
+            @if (k.delta) {
+              <div class="k-delta">
+                <span class="k-vs">vs last month</span>
+                <span [class.good]="k.deltaGood" [class.bad]="!k.deltaGood">{{ k.delta }}</span>
+              </div>
+            }
+          </div>
+          <app-sparkline [data]="trendFor(k.label)" [color]="k.accent ? 'var(--ai)' : KPI_COLORS[i % 4]" [width]="72" [height]="30"></app-sparkline>
+        </div>
+      </div>
+    }
+  </div>
+
+  <!-- ASE/ASM's whole job here is turning enquiries into leads — a direct shortcut straight
+      above the work queue, instead of only reachable via the sidebar. -->
+  @if (viewingAs() === 'ase_asm') {
+    <div [style.display]="'flex'" [style.justify-content]="'flex-end'" [style.margin-bottom]="'0.6rem'">
+      <app-button (click)="createLead()"><app-icon name="new" [size]="14"></app-icon> Create Lead</app-button>
+    </div>
+  }
+
+  <!-- Recent cases — straight after the KPIs so the work queue is first -->
+  <div [style.margin-bottom]="'1rem'">
+    <app-card title="Recent cases">
+      <div class="dtable-wrap">
+        <table class="dtable rc-table">
+          <thead>
+            <tr>
+              <th>Case ID</th><th>Partner / Case</th><th>Status</th><th>Progress</th><th>AI confidence</th><th>SLA</th><th>Last updated</th>
+              @if (canSeeApprovals()) { <th aria-label="Actions"></th> }
+            </tr>
+          </thead>
+          <tbody>
+            @if (showLeadRows()) {
+              @for (l of myLeads(); track l.id) {
+                <tr>
+                  <td class="strong">LD-{{ leadInitials(l.name) }}</td>
+                  <td>{{ l.name }}<div class="cell-sub">{{ l.town }} · {{ l.dbCategory }}</div></td>
+                  <td><app-pill tone="warn" [dot]="true">{{ stageLabel(l.stage) }}</app-pill></td>
+                  <td>
+                    @if (l.stage === 'rejected') {
+                      <app-pill tone="crit" [dot]="true">Rejected</app-pill>
+                    } @else {
+                      <div class="lead-progress" [title]="leadProgressLabel(l.stage)">
+                        @for (s of LEAD_STAGE_TRACK; track s; let si = $index) {
+                          <span class="lp-dot" [class.done]="si <= leadProgressIdx(l.stage)" [class.current]="si === leadProgressIdx(l.stage)"></span>
+                        }
+                      </div>
+                    }
+                  </td>
+                  <td>
+                    <div class="conf-cell">
+                      <span class="conf-num">{{ l.confidencePct }}%</span>
+                      <div class="conf-bar"><i [style.width.%]="l.confidencePct" [style.background]="confBarColor(l.confidencePct)"></i></div>
+                    </div>
+                  </td>
+                  <td><span class="sla-timer {{ slaTimerTone(leadDeadline(l)) }}"><app-icon name="clock" [size]="11"></app-icon> {{ slaTimerText(leadDeadline(l)) }}</span></td>
+                  <td class="num">just now</td>
+                  @if (canSeeApprovals()) { <td><app-button variant="ghost" size="sm" (click)="viewLead()">View lead</app-button></td> }
+                </tr>
+              }
+            }
+            @for (c of recentCases(); track c.code) {
+              <tr>
+                <td class="strong">{{ c.code }}</td>
+                <td>{{ c.partnerName }}<div class="cell-sub">{{ c.partnerType === 'vendor' ? 'Vendor / Service Partner' : 'GT DB (with CSO/DSM)' }}</div></td>
+                <td><app-pill [tone]="caseStatus(c.status).tone" [dot]="true">{{ caseStatus(c.status).label }}</app-pill></td>
+                <td>
+                  @if (linkedCandidate(c.candidateId); as lc) {
+                    @if (lc.stage === 'rejected') {
+                      <app-pill tone="crit" [dot]="true">Rejected</app-pill>
+                    } @else {
+                      <div class="lead-progress" [title]="leadProgressLabel(lc.stage)">
+                        @for (s of LEAD_STAGE_TRACK; track s; let si = $index) {
+                          <span class="lp-dot" [class.done]="si <= leadProgressIdx(lc.stage)" [class.current]="si === leadProgressIdx(lc.stage)"></span>
+                        }
+                      </div>
+                    }
+                  } @else {
+                    <span [style.color]="'var(--ink-mute)'">—</span>
+                  }
+                </td>
+                <td>
+                  <div class="conf-cell">
+                    <span class="conf-num">{{ c.confidencePct }}%</span>
+                    <div class="conf-bar"><i [style.width.%]="c.confidencePct" [style.background]="confBarColor(c.confidencePct)"></i></div>
+                  </div>
+                </td>
+                <td>
+                  @if (caseDeadline(c.slaLabel); as deadline) {
+                    <span class="sla-timer {{ slaTimerTone(deadline) }}"><app-icon name="clock" [size]="11"></app-icon> {{ slaTimerText(deadline) }}</span>
+                  } @else {
+                    <span [style.color]="'var(--ink-mute)'">—</span>
+                  }
+                </td>
+                <td class="num">{{ caseUpdated(c.code) }}</td>
+                @if (canSeeApprovals()) { <td><app-button variant="ghost" size="sm" (click)="viewCase()">View case</app-button></td> }
+              </tr>
+            }
+            @if ((!showLeadRows() || myLeads().length === 0) && recentCases().length === 0) {
+              <tr><td [attr.colspan]="canSeeApprovals() ? 8 : 7" [style.text-align]="'center'" [style.color]="'var(--ink-mute)'" [style.padding]="'1.2rem 0'">No cases in your queue right now.</td></tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </app-card>
+  </div>
+
+  <!-- Agents at work + journey -->
+  <div class="dash-2col">
+    <app-card>
+      <div class="feed-head">
+        <span class="card-title" [style.margin]="0">Agents at work</span>
+        <span class="live"><span class="live-dot"></span> Live</span>
+      </div>
+      <ul class="feed">
+        @for (a of feedItems(); track a.agent + '-' + a.meta + '-' + $index) {
+          <li>
+            <span class="fb" [style.background]="a.color">{{ a.short }}</span>
+            <div class="fbody">
+              <div class="fa">
+                <b>{{ a.agent }}</b>
+                @if (a.count != null) {
+                  <span class="f-count">{{ a.count }} lead{{ a.count > 1 ? 's' : '' }}</span>
+                }
+                — {{ a.action }}
+              </div>
+              <div class="fmeta">{{ a.meta }}</div>
+            </div>
+            <span class="ftime">{{ a.time }}</span>
+          </li>
+        }
+      </ul>
+      <button class="feed-more" (click)="store.askCopilot('Which AI agents are running?')">View all agents →</button>
+    </app-card>
+
+    <app-card title="What needs your attention">
+      <div class="journey-rail">
+        <div class="upnext urgent">
+          <div class="rail-title"><app-icon name="flag" [size]="12"></app-icon> Urgent action</div>
+          <div class="un-body">{{ dash().upNext.lead }} <b>{{ dash().upNext.detail }}</b></div>
+          <app-button size="sm" (click)="goUpNext()">{{ dash().upNext.cta }} →</app-button>
+        </div>
+        <div class="quick">
+          <div class="rail-title">Quick actions</div>
+          @for (qa of dash().quickActions; track qa.label) {
+            <button class="q-item" (click)="goQuickAction(qa.route)">
+              <app-icon [name]="asIconName(qa.icon)" [size]="14"></app-icon>
+              <span>{{ qa.label }}{{ qa.count != null ? ' (' + qa.count + ')' : '' }}</span>
+            </button>
+          }
+        </div>
+      </div>
+    </app-card>
+  </div>
+
+</div>

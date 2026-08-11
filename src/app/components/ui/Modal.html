@@ -1,0 +1,13 @@
+@if (open()) {
+  <div class="modal-overlay" (click)="onClose()" role="dialog" aria-modal="true">
+    <div class="modal {{ size() === 'lg' ? 'lg' : '' }}" (click)="$event.stopPropagation()">
+      <div class="modal-head">
+        <span class="title">{{ title() }}</span>
+        <button class="x" (click)="onClose()" aria-label="Close">✕</button>
+      </div>
+      <div class="modal-body">
+        <ng-content />
+      </div>
+    </div>
+  </div>
+}

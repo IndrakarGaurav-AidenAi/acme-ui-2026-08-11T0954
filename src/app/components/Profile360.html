@@ -1,0 +1,167 @@
+<div class="p360">
+  <!-- Header -->
+  <app-card>
+    <div class="p360-head">
+      <span class="avatar p360-avatar" [style.background]="data().color">{{ initials(data().name) }}</span>
+      <div class="p360-head-main">
+        <div class="p360-name-row">
+          <h2>{{ data().name }}</h2>
+          @if (data().statusBadge; as statusBadge) {
+            <app-pill [tone]="statusBadge.tone" [dot]="statusBadge.dot ?? false">{{ statusBadge.label }}</app-pill>
+          }
+        </div>
+        <div class="p360-chips">
+          @if (data().metaChips; as chips) {
+            @for (c of chips; track $index) {
+              <span class="p360-chip">
+                @if (c.icon) {
+                  <app-icon [name]="c.icon" [size]="12" />
+                }
+                {{ c.text }}
+              </span>
+            }
+          }
+        </div>
+      </div>
+      @if (showAskCopilot()) {
+        <app-button variant="ghost" size="sm" (click)="askCopilot.emit()"><app-icon name="spark" [size]="13" /> Ask copilot</app-button>
+      }
+    </div>
+  </app-card>
+
+  <!-- KPI row -->
+  <div class="kpi-grid p360-kpis">
+    @for (k of data().kpis; track k.label) {
+      <app-kpi-tile [k]="k" [showIcon]="true" (opened)="openKpi.set($event)" />
+    }
+  </div>
+
+  <!-- Tabs -->
+  <div class="p360-tabs">
+    @for (t of tabs; track t.id) {
+      <button class="p360-tab {{ tab() === t.id ? 'active' : '' }}" (click)="setTab(t.id)">
+        <app-icon [name]="t.ic" [size]="14" /> {{ t.label }}
+      </button>
+    }
+  </div>
+
+  <!-- Tab content -->
+  @switch (tab()) {
+    @case ('overview') {
+      <div class="p360-cols">
+        <div class="p360-col">
+          <app-card title="About this Partner">
+            <p style="font-size: 0.9rem; line-height: 1.6">{{ data().overview }}</p>
+          </app-card>
+          @if (business(); as business) {
+            <app-card>
+              <div class="p360-card-head"><span class="p360-card-title">Business Background</span></div>
+              <app-detail-grid [rows]="business.rows" />
+            </app-card>
+          }
+          <app-performance-card [trend]="data().trend" />
+        </div>
+        <div class="p360-col">
+          <app-contact-card [data]="data()" />
+          <app-timeline-card [data]="data()" (viewAll)="setTab('history')" />
+        </div>
+      </div>
+    }
+
+    @case ('business') {
+      <app-card>
+        <div class="p360-card-head"><span class="p360-card-title">Business Background</span></div>
+        @if (business(); as business) {
+          <app-detail-grid [rows]="business.rows" />
+        } @else {
+          <p class="p360-grv-empty">No business details on record.</p>
+        }
+      </app-card>
+    }
+
+    @case ('contact') {
+      @if (contact()) {
+        <app-contact-card [data]="data()" />
+      } @else {
+        <app-card><p class="p360-grv-empty">No contact details on record.</p></app-card>
+      }
+    }
+
+    @case ('performance') {
+      <div class="p360-col">
+        <app-performance-card [trend]="data().trend" />
+        <div class="kpi-grid p360-kpis">
+          @for (k of data().kpis; track k.label) {
+            <app-kpi-tile [k]="k" (opened)="openKpi.set($event)" />
+          }
+        </div>
+      </div>
+    }
+
+    @case ('history') {
+      <div class="p360-col">
+        <app-timeline-card [data]="data()" (viewAll)="noop()" />
+        <app-card title="Approval history">
+          <ul style="margin: 0; padding-left: 1.1rem; font-size: 0.85rem; color: var(--ink-soft); line-height: 1.9">
+            @for (h of data().history; track h) {
+              <li>{{ h }}</li>
+            }
+          </ul>
+        </app-card>
+        <app-card title="Agent activity log">
+          <div style="display: flex; flex-direction: column; gap: 0.4rem; font-family: var(--font-mono); font-size: 0.76rem; color: var(--ink-soft)">
+            @for (a of data().agentLog; track a) {
+              <div>✦ {{ a }}</div>
+            }
+          </div>
+        </app-card>
+        <app-grievances-card [data]="data()" />
+      </div>
+    }
+
+    @case ('documents') {
+      <div class="p360-col">
+        <app-card title="Documents">
+          <div class="dtable-wrap" style="border: none">
+            <table class="dtable">
+              <tbody>
+                @for (d of data().docs; track d.name) {
+                  <tr>
+                    <td class="strong">{{ d.name }}</td>
+                    <td>
+                      @if (docPill(d.status); as p) {
+                        <app-pill [tone]="p.tone" [dot]="p.dot">{{ p.label }}</app-pill>
+                      }
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        </app-card>
+        <app-grievances-card [data]="data()" />
+      </div>
+    }
+  }
+
+  <app-modal [open]="!!openKpi()" (closed)="openKpi.set(null)" [title]="openKpi() ? openKpi()!.label + ' — ' + openKpi()!.value : ''">
+    @if (openKpi()?.breakdown; as breakdown) {
+      <div class="p360-kpi-breakdown">
+        @for (r of breakdown; track r.label) {
+          <div class="p360-kpi-bd-row">
+            <span class="p360-kpi-bd-label">{{ r.label }}</span>
+            <span class="p360-kpi-bd-val">
+              <b>{{ r.value }}</b>
+              @if (r.sub) {
+                <span class="sub">{{ r.sub }}</span>
+              }
+            </span>
+            @if (pctShare(r.sub); as pct) {
+              <span class="p360-kpi-bd-bar"><i [style.width]="pct + '%'"></i></span>
+            }
+          </div>
+        }
+      </div>
+    }
+  </app-modal>
+</div>

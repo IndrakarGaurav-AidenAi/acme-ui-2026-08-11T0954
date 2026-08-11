@@ -1,0 +1,873 @@
+<div>
+  <div class="page-head">
+    <h1>New Application <span class="page-info-ic" title="Templatized by partner type — the documents and approval workflow change automatically based on who you're onboarding."><app-icon name="help" [size]="13" /></span></h1>
+  </div>
+
+  @if (step() === 'success') {
+    <app-card [padLg]="true">
+      <div class="success-box">
+        <div class="big-check"><app-icon name="approvals" [size]="30" /></div>
+        <h2>{{ successIsBatch() ? (batchChosen().length + ' applications submitted') : 'Sent to Leadership for final sign-off' }}</h2>
+        <p>
+          {{ successIsBatch()
+            ? (batchChosen().length + ' leads submitted — each routed based on its evaluation result; auto-cleared ones now sit with Leadership for final sign-off. No manual SAP entry, no chased emails.')
+            : (selected()?.name + ', ' + selected()?.town + ' — e-signature sent, routed to Leadership for final approval before it goes live.') }}
+        </p>
+        @if (successIsBatch()) {
+          <div class="dtable-wrap" style="margin: 1rem 0; text-align: left">
+            <table class="dtable">
+              <thead><tr><th>Lead</th><th>Town</th><th>Financial</th><th>Channel</th><th>Status</th></tr></thead>
+              <tbody>
+                @for (e of batchChosen(); track e.c.id) {
+                  <tr>
+                    <td class="strong">{{ e.c.name }}</td>
+                    <td>{{ e.c.town }}</td>
+                    <td><app-pill [tone]="e.financePass ? 'good' : 'crit'" [dot]="true">{{ e.fin }}%</app-pill></td>
+                    <td><app-pill [tone]="e.channelPass ? 'good' : 'warn'" [dot]="true">{{ e.infra.toFixed(1) }}/10</app-pill></td>
+                    <td><app-pill [tone]="e.financePass && e.channelPass ? 'good' : 'warn'">{{ e.financePass && e.channelPass ? '→ Leadership' : !e.financePass ? '→ Finance' : '→ Trade Marketing' }}</app-pill></td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        } @else {
+          <div class="success-meta">
+            <div><div class="k">Town</div><div class="v">{{ selected()?.town }}</div></div>
+            <div><div class="k">Type</div><div class="v">{{ isReplacement() ? 'Replacement' : 'New DB' }}</div></div>
+            <div><div class="k">Status</div><div class="v">{{ successAutoCleared() ? 'Awaiting Leadership sign-off' : 'In review' }}</div></div>
+          </div>
+        }
+        <div class="agent-tally">
+          @for (t of successTally(); track t) { <span class="t">✦ {{ t }}</span> }
+        </div>
+        <div style="display: flex; gap: 0.6rem; justify-content: center; margin-top: 1.2rem">
+          <app-button variant="ghost" (click)="restart()">Start another</app-button>
+          <app-button (click)="goToAnalytics()">View analytics →</app-button>
+        </div>
+      </div>
+    </app-card>
+  } @else {
+    <div class="wizard-shell">
+      <nav class="wizard-sidenav">
+        @for (f of MAIN_STEPS; track f.id; let i = $index) {
+          <button class="wsn-item" [class.done]="i < stepIndex()" [class.current]="i === stepIndex()"
+            [disabled]="i > stepIndex()" (click)="clickSidenavStep(i, f.id)">
+            <span class="n">{{ i < stepIndex() ? '✓' : i + 1 }}</span><span class="wsn-label">{{ f.label }}</span>
+          </button>
+        }
+      </nav>
+
+      <div class="wizard-content">
+        @if (step() === 'type') {
+          <!-- ================= Step 1: partner type ================= -->
+          <div>
+            <div class="pt-grid">
+              @for (t of VISIBLE_PARTNER_TYPES; track t.code) {
+                <button class="pt-card" [class.sel]="partnerType() === t.code" [class.disabled]="!t.isActive"
+                  [disabled]="!t.isActive" (click)="selectPartnerType(t.code)">
+                  @if (!t.isActive) { <span class="soon">Coming soon</span> }
+                  <div class="pt-top">
+                    <span class="pt-mark" [style.background]="PT_COLOR[t.code]">{{ t.label[0] }}</span>
+                    <span class="pt-name">{{ t.label }}</span>
+                  </div>
+                  <div class="pt-meta"><strong>{{ t.documents.length }} documents</strong> · {{ t.workflow.length }}-step workflow</div>
+                  <div class="pt-docs">
+                    @for (d of t.documents.slice(0, 4); track d) { <span>{{ d }}</span> }
+                  </div>
+                </button>
+              }
+            </div>
+            @if (partnerType() && !built()) {
+              <div class="gate-callout" style="margin-top: 1.1rem">
+                <span class="flag">Phase 2</span>
+                <p>The <strong>{{ partnerTypeLabelOf(partnerType()) }}</strong> template is configured, but its wizard ships in Phase 2. Pick <strong>Distributor</strong> to run the live flow.</p>
+              </div>
+            }
+            <div class="wizard-foot">
+              <span class="muted-note">Selecting a type applies its template to every downstream step.</span>
+              <app-button [disabled]="!partnerType() || !built()" (click)="continueType()">Continue →</app-button>
+            </div>
+          </div>
+        } @else if (step() === 'candidates') {
+          <!-- ================= Step 1.5: candidate pipeline (board + evaluate) ================= -->
+          @if (pipelineCandidates().length === 0) {
+            <div>
+              <app-card className="stack">
+                <div style="text-align: center; padding: 1.8rem 1rem">
+                  <p style="font-weight: 800; color: var(--ink); font-size: 1rem; margin-bottom: 0.4rem">No leads in the pipeline yet</p>
+                  <p class="muted-note" style="margin-bottom: 1.1rem">
+                    Leads the field team reviews &amp; shortlists on the Leads page appear here automatically, ready to compare — or pull one in from the distributor directory.
+                  </p>
+                  <div style="display: flex; gap: 0.6rem; justify-content: center; flex-wrap: wrap">
+                    <app-button (click)="openLeadsPage()"><app-icon name="leads" [size]="14" /> Open Leads</app-button>
+                    <app-button variant="ghost" (click)="candOpenPicker()">+ Add from directory</app-button>
+                  </div>
+                </div>
+              </app-card>
+              <div class="wizard-foot">
+                <app-button variant="text" (click)="step.set('type')">← Back</app-button>
+                <app-button [disabled]="true" title="Add at least one lead to continue">Continue →</app-button>
+              </div>
+            </div>
+          } @else {
+            <div class="cand-layout">
+              <aside class="cand-list">
+                <div class="cand-list-head">
+                  <span class="t">Leads ({{ candCountLabel() }})</span>
+                  <app-button variant="ghost" size="sm" (click)="candOpenPicker()">+ Add</app-button>
+                </div>
+                <select class="select" style="width: 100%; margin-bottom: 0.6rem" [ngModel]="candCatFilter()" (ngModelChange)="candSetCatFilter($event)" aria-label="Filter leads by DB category">
+                  <option value="all">All categories</option>
+                  @for (c of DB_TYPES; track c) { <option [value]="c">{{ c }}</option> }
+                </select>
+                @if (visibleCandidates().length === 0) {
+                  <p class="muted-note" style="margin: 0.4rem 0">No leads in this category.</p>
+                }
+                @for (c of visibleCandidates(); track c.id) {
+                  <div class="cand-item" [class.sel]="store.selectedCandidateId() === c.id" [class.in-eval]="store.evalIds().includes(c.id)"
+                    (click)="store.setSelectedCandidateId(c.id)">
+                    <input type="checkbox" [checked]="store.evalIds().includes(c.id)" [disabled]="candCategoryLocked(c)"
+                      (click)="$event.stopPropagation()" (change)="store.toggleEvalId(c.id)"
+                      [title]="candCategoryLocked(c) ? candCategoryLockTitle(c) : 'Include in batch evaluation'"
+                      [attr.aria-label]="'Evaluate ' + c.name" />
+                    <div>
+                      <div class="ci-name">{{ c.name }}@if (c.isBestMatch) {<span class="best-match">Best Match</span>}</div>
+                      <div class="ci-meta">{{ c.town }} · {{ c.dbCategory }}</div>
+                      <div class="ci-foot"><span class="ci-stage">{{ stageLabel(c) }}</span><span class="ci-conf">{{ c.confidencePct }}%</span></div>
+                    </div>
+                    <button class="cand-del" title="Remove lead" [attr.aria-label]="'Remove ' + c.name"
+                      [disabled]="pipelineCandidates().length <= 1"
+                      (click)="$event.stopPropagation(); removeLead(c.id)">×</button>
+                  </div>
+                }
+                <p class="muted-note" style="margin-top: 0.2rem">{{ candEvalHint() }}</p>
+              </aside>
+
+              <div class="cand-detail">
+                <app-card className="stack">
+                  <div class="ic-head">
+                    <span class="ic-icon"><app-icon name="partners" [size]="16" /></span>
+                    <div>
+                      <div class="ic-title">Compare leads</div>
+                      <div class="ic-sub">
+                        {{ candTicked().length ? ('Comparing ' + candCols().length + ' of ' + candTicked().length + ' ticked lead' + (candTicked().length > 1 ? 's' : '')) : 'Tick leads on the left to compare them side by side' }}{{ candTicked().length > MAX_COMPARE ? (' — up to ' + MAX_COMPARE + ' at a time; untick one on the left to swap in another') : '' }}.
+                        <span class="best-mark">✓</span> marks the best value in each row; click a lead's card to make it the active one scored by the sliders below.
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="dtable-wrap compare-wrap" style="border: none">
+                    <table class="dtable db-compare">
+                      <thead>
+                        <tr>
+                          <th class="param-col compare-controls">
+                            <label class="cc-check"><input type="checkbox" [checked]="candDiffOnly()" (change)="candDiffOnly.set(!candDiffOnly())" /> Hide common rows</label>
+                            <label class="cc-check"><input type="checkbox" [checked]="candHighlightDiff()" (change)="candHighlightDiff.set(!candHighlightDiff())" /> Highlight differences</label>
+                          </th>
+                          @for (c of candCols(); track c.id) {
+                            <th class="lead-col" [class.db1-col]="c.id === candSelected()?.id" (click)="store.setSelectedCandidateId(c.id)"
+                              [title]="c.id === candSelected()?.id ? null : ('Make ' + c.name + ' the active lead')">
+                              <span class="cc-vs">VS</span>
+                              <div class="cc-card">
+                                @if (candCols().length > 1) {
+                                  <button class="cc-remove" [title]="'Remove ' + c.name + ' from comparison'" [attr.aria-label]="'Remove ' + c.name + ' from comparison'"
+                                    (click)="$event.stopPropagation(); store.toggleEvalId(c.id)">×</button>
+                                }
+                                <span class="cc-avatar">{{ initials(c.name) }}</span>
+                                <div class="cc-name">{{ c.name }}</div>
+                                @if (c.isBestMatch) { <span class="best-match">Best Match</span> }
+                                <div class="cc-meta">{{ c.town }} · {{ c.dbCategory }}</div>
+                                <div class="cc-price">₹{{ c.expectedAcmeTurnover }}L<span class="cc-price-cap">Expected Acme turnover/mo</span></div>
+                                <div class="cc-btn-row">
+                                  <button class="cc-cta" [class.on]="c.id === candSelected()?.id" (click)="$event.stopPropagation(); store.setSelectedCandidateId(c.id)">{{ c.id === candSelected()?.id ? '● Active' : 'Activate' }}</button>
+                                  <button class="cc-details" (click)="$event.stopPropagation(); candOpenDetail(c.id)">View details</button>
+                                </div>
+                              </div>
+                            </th>
+                          }
+                          @if (canAddCompare()) {
+                            <th class="add-col" (click)="candOpenPicker()" title="Add another lead to compare">
+                              <div class="cc-card cc-add"><span class="cc-plus">+</span><div class="cc-add-label">Add lead</div></div>
+                            </th>
+                          }
+                          <th class="ideal">
+                            <div class="cc-card">
+                              <span class="cc-avatar cc-avatar-ideal">★</span>
+                              <div class="cc-name">Ideal DB</div>
+                              <div class="cc-meta">Territory benchmark</div>
+                              <div class="cc-price">{{ IDEAL_DB.coverageOutlets.toLocaleString() }}<span class="cc-price-cap">Target outlet coverage</span></div>
+                            </div>
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        @for (s of visibleSections(); track s.title) {
+                          <tr class="compare-section"><td [attr.colspan]="colspanFor()">{{ s.title }}</td></tr>
+                          @for (r of s.rows; track r.label) {
+                            <tr>
+                              <td class="strong param-col">{{ r.label }}</td>
+                              @for (c of candCols(); track c.id) {
+                                <td class="lead-val" [class.db1-col]="c.id === candSelected()?.id" [class.row-best]="candRowBest(r, c)" [class.cell-diff]="candHighlightDiff() && candRowDiffers(r)">
+                                  @if (candRowBest(r, c)) { <span class="best-mark" title="Best across leads">✓ </span> }
+                                  @switch (r.kind) {
+                                    @case ('coverage') {
+                                      {{ c.coverageOutlets.toLocaleString() }} <app-pill [tone]="coverageTag(c.coverageOutlets).tone">{{ coverageTag(c.coverageOutlets).label }}</app-pill>
+                                    }
+                                    @case ('pct') { {{ c.confidencePct }}% }
+                                    @case ('infraFactor') {
+                                      @if (c.id === candSelected()?.id) {
+                                        <span class="cell-slider">
+                                          <input type="range" min="1" max="10" [ngModel]="store.infra()[r.factorKey!]" (ngModelChange)="candSetSlider(r.factorKey!, $event)" />
+                                          <b>{{ store.infra()[r.factorKey!] }}/10</b>
+                                        </span>
+                                      } @else {
+                                        {{ factorScore(c, r.factorKey!) }}/10
+                                      }
+                                    }
+                                    @case ('infraTotal') { {{ liveInfra(c).toFixed(1) }} }
+                                    @case ('channelCheck') {
+                                      <app-pill [tone]="chanPass(c) ? 'good' : 'warn'" [dot]="true">{{ chanPass(c) ? 'Clear' : 'Below threshold' }}</app-pill>
+                                    }
+                                    @case ('ownFunds') {
+                                      @if (c.id === candSelected()?.id) {
+                                        <span class="cell-slider">
+                                          <input type="range" min="0" max="200" [ngModel]="store.ownFunds()" (ngModelChange)="candSetOwnFunds($event)" />
+                                          <b>{{ store.ownFunds() }}</b>
+                                        </span>
+                                      } @else { — }
+                                    }
+                                    @case ('ccLimit') {
+                                      @if (c.id === candSelected()?.id) {
+                                        <span class="cell-slider">
+                                          <input type="range" min="0" max="150" [ngModel]="store.ccLimit()" (ngModelChange)="candSetCcLimit($event)" />
+                                          <b>{{ store.ccLimit() }}</b>
+                                        </span>
+                                      } @else { — }
+                                    }
+                                    @case ('finEvalPct') { {{ liveFin(c) }}% }
+                                    @case ('financeCheck') {
+                                      <app-pill [tone]="finPass(c) ? 'good' : 'crit'" [dot]="true">{{ finPass(c) ? 'Clear' : 'Out of range' }}</app-pill>
+                                    }
+                                    @case ('route') {
+                                      <app-pill [tone]="finPass(c) && chanPass(c) ? 'good' : 'warn'">{{ finPass(c) && chanPass(c) ? 'Auto-clear' : 'Needs review' }}</app-pill>
+                                    }
+                                    @default { {{ r.value(c) }} }
+                                  }
+                                </td>
+                              }
+                              @if (canAddCompare()) { <td class="add-col"></td> }
+                              <td class="ideal">{{ r.ideal }}</td>
+                            </tr>
+                          }
+                        }
+                        @if (visibleSections().length === 0) {
+                          <tr><td class="compare-same" [attr.colspan]="colspanFor()">These leads are identical on every parameter — untick "Hide common rows" to see all rows.</td></tr>
+                        }
+                      </tbody>
+                    </table>
+                  </div>
+                  <p class="muted-note" style="margin-top: 0.5rem">"Ideal DB" is the benchmark for this territory's coverage plan, not a real lead. The sliders in <strong>{{ candSelected()?.name }}</strong>'s column score it live; other ticked leads show their recorded scores.</p>
+                  <p class="muted-note">Currently <strong>{{ CANDIDATE_STAGES[stageIndexCand()].label }}</strong> — continuing to Evaluate moves <strong>{{ candSelected()?.name }}</strong> to Pending, and it advances automatically as it clears each review.</p>
+                </app-card>
+
+                <div class="wizard-foot">
+                  <app-button variant="text" (click)="step.set('type')">← Back</app-button>
+                  <app-button [disabled]="store.evalIds().length === 0" (click)="goToStep('evaluate')"
+                    [title]="store.evalIds().length === 0 ? 'Tick at least one lead to evaluate' : null">Continue →</app-button>
+                </div>
+              </div>
+            </div>
+          }
+
+          <app-modal [open]="candPickerOpen()" (closed)="candClosePicker()" title="Add a lead">
+            @if (pickerLockNoteVisible()) {
+              <p class="muted-note" style="margin-bottom: 0.9rem; font-style: normal">
+                Comparison is locked to <strong>{{ compareCategory() }}</strong> — leads in other categories are hidden here. Untick the current comparison to switch categories.
+              </p>
+            }
+            @if (untickedSameCategory().length > 0) {
+              <p class="muted-note" style="margin-bottom: 0.9rem; font-style: normal">Already in this application's pipeline — add to the comparison.</p>
+              <div class="lead-pick" style="margin-bottom: 1.1rem">
+                @for (lc of untickedSameCategory(); track lc.id) {
+                  <div class="lead-pick-row">
+                    <div class="lp-main">
+                      <div class="lp-name">{{ lc.name }}</div>
+                      <div class="lp-meta">{{ lc.town }} · {{ lc.dbCategory }} · ₹{{ lc.turnoverMonthly }}L/mo · {{ lc.coverageOutlets.toLocaleString() }} OL</div>
+                    </div>
+                    <app-button size="sm" (click)="candCompareLead(lc.id)">+ Compare</app-button>
+                  </div>
+                }
+              </div>
+            }
+            <p class="muted-note" style="margin-bottom: 0.9rem; font-style: normal">Distributors surfaced by the Lead Generation Agent. Add one to this application's pipeline to score and evaluate it.</p>
+            @if (pickerAvailableSameCategory().length === 0) {
+              <div class="lead-pick-empty">Every surfaced lead is already in the pipeline.</div>
+            } @else {
+              <div class="lead-pick">
+                @for (lc of pickerAvailableSameCategory(); track lc.id) {
+                  <div class="lead-pick-row">
+                    <div class="lp-main">
+                      <div class="lp-name">{{ lc.name }}</div>
+                      <div class="lp-meta">{{ lc.town }} · {{ lc.dbCategory }} · ₹{{ lc.turnoverMonthly }}L/mo · {{ lc.coverageOutlets.toLocaleString() }} OL</div>
+                    </div>
+                    <app-button size="sm" (click)="addLead(lc)">+ Add</app-button>
+                  </div>
+                }
+              </div>
+            }
+          </app-modal>
+
+          <!-- ---------- "View details" popup on a comparison lead ---------- -->
+          <app-modal [open]="!!ldCandidate()" (closed)="candCloseDetail()" size="lg" [title]="ldModalTitle()">
+            @if (ldCandidate(); as c) {
+              <div class="lead-detail-modal ldv2">
+                <div class="ldv2-col ldv2-ai">
+                  <div class="ldv2-h">AI Recommendation</div>
+                  <div class="ldv2-ring-wrap">
+                    <div class="outcome-ring lg" [style.--v]="ldConfidence()" [style.--ring-c]="ldWillAutoClear() ? 'var(--good)' : 'var(--warn)'">
+                      <span><b>{{ ldConfidence() }}%</b><small>Confidence</small></span>
+                    </div>
+                  </div>
+                  <div class="ldv2-route">{{ ldNextStepLabel() }}</div>
+                  <app-pill [tone]="ldWillAutoClear() ? 'good' : 'warn'" [dot]="true">{{ ldWillAutoClear() ? 'High likelihood of auto-clear' : 'Needs review before clearing' }}</app-pill>
+                  <div class="ldv2-timeline"><app-icon name="clock" [size]="13" /> Estimated timeline <b>{{ ldTimelineText() }}</b></div>
+
+                  <div class="ldv2-h" style="margin-top: 1.1rem">AI Findings</div>
+                  <div class="ldv2-findings">
+                    @for (d of ldKeyDrivers(); track d.label) {
+                      <div class="oh-driver-row">
+                        <app-icon [name]="d.tone === 'good' ? 'approvals' : 'close'" [size]="13" />
+                        <span>{{ d.label }}</span>
+                      </div>
+                    }
+                  </div>
+                </div>
+
+                <div class="ldv2-col ldv2-main">
+                  <div class="ldv2-h">Business Summary</div>
+                  <div class="ldv2-tiles">
+                    <div class="ldv2-tile"><div class="v">{{ ldBg('agency_since') }}</div><div class="k">Years in Business</div></div>
+                    <div class="ldv2-tile"><div class="v">₹{{ c.turnoverMonthly }}L</div><div class="k">Total Monthly Turnover</div></div>
+                    <div class="ldv2-tile"><div class="v">₹{{ c.expectedAcmeTurnover }}L</div><div class="k">Acme Turnover (Est.)</div></div>
+                    <div class="ldv2-tile"><div class="v">{{ ldBg('acme_contribution') }}</div><div class="k">Acme Distribution Contribution to Business</div></div>
+                  </div>
+                  <div class="ldv2-contact-row">
+                    <div><app-icon name="partners" [size]="14" /><span>Companies Handled<b>{{ ldBg('companies_handled') }}</b></span></div>
+                    <div><app-icon name="comms" [size]="14" /><span>Phone Number<b>{{ ldBg('phone') }}</b></span></div>
+                  </div>
+
+                  <div class="ldv2-sc-head">
+                    <span class="ldv2-h">Recommendation – Scorecard</span>
+                    <span class="ldv2-overall"><b>{{ c.confidencePct }}%</b><small>Overall Confidence</small></span>
+                  </div>
+                  <div class="ldv2-bars">
+                    @for (f of INFRA_FACTORS; track f.key) {
+                      <div class="ldv2-bar-row">
+                        <span class="lbl">{{ f.label }}</span>
+                        <div class="bar"><i [style.width.%]="factorScore(c, f.key) * 10"></i></div>
+                        <span class="val">{{ factorScore(c, f.key) }}/10</span>
+                      </div>
+                    }
+                    <div class="ldv2-bar-row total"><span class="lbl">Total Score</span><span></span><span class="val">{{ ldInfraTotal().toFixed(1) }}/10</span></div>
+                  </div>
+                </div>
+
+                <div class="ldv2-col-span-2">
+                  <div class="ic-head">
+                    <div>
+                      <div class="ic-title">New DB Appointment Recommendation Form</div>
+                      <div class="ic-sub">The exact fields from Acme Distribution's appointment workbook — Basic Information, Background, Coverage &amp; Financials.</div>
+                    </div>
+                  </div>
+
+                  <div class="ld-divider"></div>
+                  <div class="ld-intake-head"><span class="ic-title" style="font-size: 0.92rem">Basic Information</span></div>
+                  <div class="ld-fields">
+                    @for (f of BASIC_INFORMATION; track f.key) {
+                      @if (!f.showWhen) {
+                        <div class="ld-field"><span class="k">{{ f.label }}</span><span class="v">{{ (ldOverrides()[f.label] ?? f.value) + (f.suffix ? (' ' + f.suffix) : '') }}</span></div>
+                      }
+                    }
+                    <div class="ld-field"><span class="k">New DB Type</span><span class="v">{{ c.dbCategory }}</span></div>
+                    <div class="ld-field">
+                      <span class="k">New DB / Replacement / Additional</span>
+                      <span class="v" style="display: flex; align-items: center; gap: 0.5rem">
+                        {{ SUBTYPE_LABEL[c.subtype ?? 'new'] }}
+                        @if (c.subtype === 'replacement' && c.discontinuationForm) {
+                          <button class="btn text sm" style="font-weight: 700" (click)="ldOpenDiscForm()">View form</button>
+                        }
+                      </span>
+                    </div>
+                    @if (c.subtype === 'additional') {
+                      <div class="ld-field"><span class="k">If Additional DB, mention reason</span><span class="v">{{ c.additionalReason || '—' }}</span></div>
+                    }
+                    @if (c.subtype === 'replacement') {
+                      <div class="ld-field"><span class="k">If Replacement, mention OLD DB Code</span>
+                        <span class="v">{{ c.oldDbCode ? (c.oldDbCode + (c.oldDbName ? (' — ' + c.oldDbName) : '')) : '—' }}</span>
+                      </div>
+                    }
+                  </div>
+
+                  @if (c.discontinuationForm) {
+                    <app-disengagement-form-modal [open]="ldDiscFormOpen()" (closed)="ldCloseDiscForm()" [existing]="c.discontinuationForm" submitLabel="Save changes" (submitted)="ldSubmitDiscForm($event)" />
+                  }
+
+                  <div class="ld-divider"></div>
+                  <div class="ld-intake-head"><span class="ic-title" style="font-size: 0.92rem">Background Information</span></div>
+                  <div class="ld-fields">
+                    @for (f of BACKGROUND_INFORMATION; track f.key) {
+                      <div class="ld-field"><span class="k">{{ f.label }}</span><span class="v">{{ (ldOverrides()[f.label] ?? f.value) + (f.suffix ? (' ' + f.suffix) : '') }}</span></div>
+                    }
+                  </div>
+
+                  <div class="ld-divider"></div>
+                  <div class="ld-intake-head"><span class="ic-title" style="font-size: 0.92rem">Coverage Data</span></div>
+                  <div class="ld-fields">
+                    @for (f of COVERAGE_DATA; track f.key) {
+                      <div class="ld-field"><span class="k">{{ f.label }}</span><span class="v">{{ (ldOverrides()[f.label] ?? f.value) + (f.suffix ? (' ' + f.suffix) : '') }}</span></div>
+                    }
+                  </div>
+
+                  <div class="ld-divider"></div>
+                  <div class="ld-intake-head"><span class="ic-title" style="font-size: 0.92rem">Financials — investment build-up</span></div>
+                  <div class="ld-fields">
+                    @for (f of FINANCIAL_BREAKDOWN; track f.key) {
+                      <div class="ld-field"><span class="k">{{ f.label }}</span><span class="v">{{ (ldOverrides()[f.label] ?? f.value) + (f.suffix ? (' ' + f.suffix) : '') }}</span></div>
+                    }
+                    <div class="ld-field"><span class="k">Total Investment Required</span><span class="v">₹{{ TOTAL_INVESTMENT_REQUIRED }}L</span></div>
+                  </div>
+                  <p class="muted-note" style="margin: 0.7rem 0 0">Own Funds / CC Limit and the 8 Infrastructure factors are scored on the Evaluate step — they drive the Financial &amp; Channel Management Evaluations.</p>
+
+                  <div class="ic-turnover" style="margin-top: 0.9rem">
+                    <div><div class="ic-turnover-label">Expected Acme turnover / month</div><div class="ic-turnover-range">₹{{ c.expectedAcmeTurnover }}L</div></div>
+                    <app-pill [tone]="ldFinEval() >= 100 ? 'good' : 'warn'" [dot]="true">{{ c.expectedAcmeTurnover > 50 ? 'RBL sign-off' : 'SM sign-off' }}</app-pill>
+                  </div>
+
+                  <div class="ld-divider"></div>
+                  <div class="ld-intake-head"><span class="ic-title" style="font-size: 0.92rem">Lead under evaluation</span></div>
+                  <div class="ic-turnover">
+                    <div>
+                      <div class="ic-turnover-label">{{ c.name }}@if (c.isBestMatch) {<span class="best-match">Best Match</span>}</div>
+                      <div class="ic-turnover-range">{{ c.town }} · {{ c.dbCategory }} · {{ ldStageTag() }}</div>
+                    </div>
+                    <app-pill tone="neutral">Infra {{ ldInfraTotal().toFixed(1) }}/10 · Financial {{ ldFinEval() }}%</app-pill>
+                  </div>
+                  <div style="margin-top: 0.6rem; display: flex; gap: 0.5rem; flex-wrap: wrap">
+                    <app-pill [tone]="ldWillAutoClear() ? 'good' : 'warn'" [dot]="true">Recommendation Engine: {{ ldWillAutoClear() ? 'likely to auto-clear' : (!ldFinancePass() ? 'likely to flag for Finance' : 'likely to flag for Trade Marketing') }}</app-pill>
+                    <app-pill tone="ai">{{ c.confidencePct }}% confidence</app-pill>
+                  </div>
+                </div>
+
+                @if (ldExt(); as ext) {
+                  <div class="ldv2-col-span-2">
+                    <div class="ld-divider"></div>
+                    <div class="ld-intake-head">
+                      <span class="ic-title" style="font-size: 0.92rem">Original intake — {{ ext.source }}</span>
+                      <app-pill [tone]="(ext.confidencePct ?? 0) >= 85 ? 'good' : (ext.confidencePct ?? 0) >= 60 ? 'warn' : 'crit'" [dot]="true">{{ ext.confidencePct ?? 0 }}% extraction confidence</app-pill>
+                    </div>
+                    @if (ext.duplicate) {
+                      <div class="ir-dup" style="margin-bottom: 0.9rem">
+                        <span class="ir-dup-ic"><app-icon name="flag" [size]="14" /></span>
+                        <div style="flex: 1">
+                          <div class="ir-dup-title">Possible duplicate</div>
+                          <div class="ir-dup-note">{{ ext.duplicate }}</div>
+                        </div>
+                      </div>
+                    }
+                    @if (ext.summary) {
+                      <div class="ir-summary" style="margin-bottom: 0.9rem">
+                        <span class="ir-summary-tag"><app-icon name="spark" [size]="12" /> Agent summary</span>
+                        <span>{{ ext.summary }}</span>
+                      </div>
+                    }
+                    <div class="ld-fields" style="margin-bottom: 0.9rem">
+                      <div class="ld-field"><span class="k">Received</span><span class="v">{{ ext.receivedFull ?? ext.receivedAt }}</span></div>
+                      <div class="ld-field"><span class="k">Channel</span><span class="v">{{ ext.channel === 'email' ? 'Email' : 'Manual upload' }}</span></div>
+                      <div class="ld-field"><span class="k">Priority</span><span class="v">
+                        <app-pill [tone]="ext.priority === 'high' ? 'crit' : ext.priority === 'low' ? 'neutral' : 'warn'" [dot]="true">{{ ext.priority === 'high' ? 'High' : ext.priority === 'low' ? 'Low' : 'Normal' }}</app-pill>
+                      </span></div>
+                      <div class="ld-field"><span class="k">Region</span><span class="v">{{ ext.region ?? '—' }}</span></div>
+                      <div class="ld-field"><span class="k">Assigned to</span><span class="v">{{ ext.assignedTo ?? 'Unassigned' }}</span></div>
+                      <div class="ld-field"><span class="k">Partner type</span><span class="v">{{ ext.partnerType === 'vendor' ? 'Vendor' : 'Distributor' }}</span></div>
+                    </div>
+                    <div class="ld-fields">
+                      @for (f of mergedFields(ext); track f.label) {
+                        <div class="ld-field"><span class="k">{{ f.label }}</span><span class="v" [class.miss]="!f.ok">{{ f.ok ? f.value : 'Missing' }}</span></div>
+                      }
+                    </div>
+                    @if (ext.documents && ext.documents.length > 0) {
+                      <div class="ld-docs">
+                        @for (d of ext.documents; track d.name) {
+                          <button type="button" class="ld-doc-btn" [disabled]="!d.received" [title]="d.received ? ('View ' + d.name + ' in a new tab') : (d.name + ' — not received')" (click)="ldViewDoc(d)">
+                            <app-pill [tone]="d.received ? 'good' : 'crit'" [dot]="true">{{ d.name }}{{ d.received ? '' : ' — missing' }}</app-pill>
+                            @if (d.received) { <span class="ld-doc-view">View <app-icon name="external" [size]="11" /></span> }
+                          </button>
+                        }
+                      </div>
+                    }
+                    @if (ext.attachments && ext.attachments.length > 0) {
+                      <div class="ir-attach" style="margin-top: 0.9rem">
+                        <div class="k">Attachments ({{ ext.attachments.length }})</div>
+                        <div class="ir-attach-list">
+                          @for (a of ext.attachments; track a) { <span class="ir-attach-chip"><app-icon name="documents" [size]="12" /> {{ a }}</span> }
+                        </div>
+                      </div>
+                    }
+                  </div>
+                }
+
+                <div class="ldv2-actions">
+                  <app-button variant="ghost" className="ldv2-reject" (click)="ldReject()">Reject Application</app-button>
+                  <app-button variant="ghost" (click)="ldRequestInfo()">Request More Info</app-button>
+                  <app-button (click)="ldAccept()">{{ ldNextStepLabel() }} →</app-button>
+                </div>
+              </div>
+            }
+          </app-modal>
+        } @else if (step() === 'evaluate') {
+          <!-- ================= Step 4: evaluation (batch) ================= -->
+          @if (evalProceed(); as proceed) {
+            <div>
+              <app-card title="Evaluation Agent">
+                <app-agent-trace [lines]="lines()" (done)="onEvalTraceDone()" />
+                @if (evalDone()) {
+                  <div class="mono-label" style="margin: 1.1rem 0 0.5rem">
+                    EVALUATION RESULTS — {{ evalDisplayEval().length }} LEAD{{ evalMulti() ? 'S' : '' }}{{ evalMulti() ? ' · SELECT WHICH TO PROCEED WITH' : '' }} · OPEN A ROW FOR THE FULL SCORECARD
+                  </div>
+                  <div class="dtable-wrap">
+                    <table class="dtable eval-compare">
+                      <thead>
+                        <tr>
+                          <th style="width: 40px"></th>
+                          <th>Lead</th>
+                          <th>Financial Evaluation</th>
+                          <th>Channel Evaluation</th>
+                          <th>Outcome</th>
+                          <th style="width: 90px">Details</th>
+                          <th style="width: 90px"></th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        @for (e of evalDisplayEval(); track e.c.id) {
+                          <tr class="clickable" [class.eval-chosen]="e.c.id === evalProceedId()" (click)="evalToggleCheck(e.c.id)">
+                            <td (click)="$event.stopPropagation()">
+                              <input type="checkbox" [checked]="evalCheckedIds().includes(e.c.id)" (change)="evalToggleCheck(e.c.id)" [attr.aria-label]="'Select ' + e.c.name" />
+                            </td>
+                            <td class="strong">
+                              {{ e.c.name }}@if (e.c.isBestMatch) {<span class="best-match">Best Match</span>}@if (e.c.id === evalProceedId() && evalCheckedIds().includes(e.c.id)) {<span class="best-match" style="background: var(--accent); margin-left: 0.4rem">→ Proceed</span>}
+                            </td>
+                            <td><app-pill [tone]="e.financePass ? 'good' : 'crit'" [dot]="true">{{ e.fin }}% {{ e.financePass ? 'Clear' : 'Out of range' }}</app-pill></td>
+                            <td><app-pill [tone]="e.channelPass ? 'good' : 'warn'" [dot]="true">{{ e.infra.toFixed(1) }}/10 {{ e.channelPass ? 'Clear' : 'Below' }}</app-pill></td>
+                            <td><app-pill [tone]="routeLabel(e).tone">{{ routeLabel(e).label }}</app-pill></td>
+                            <td (click)="$event.stopPropagation()">
+                              <button class="btn text sm eval-detail-btn" (click)="evalToggleDetail(e.c.id)">{{ evalOpenDetail() === e.c.id ? 'Hide ▲' : 'Details ▾' }}</button>
+                            </td>
+                            <td (click)="$event.stopPropagation()">
+                              <button class="btn ghost sm" (click)="evalRejectRow(e.c.id)">Reject</button>
+                            </td>
+                          </tr>
+                          @if (evalOpenDetail() === e.c.id) {
+                            <tr class="eval-detail-row">
+                              <td colspan="7">
+                                <div class="eval-detail">
+                                  <div class="ed-panel">
+                                    <div class="ed-h">Financial Evaluation</div>
+                                    <div class="ed-line"><span>Required investment</span><b>₹{{ REQUIRED_INVESTMENT }}L</b></div>
+                                    <div class="ed-line"><span>Capital available (recorded)</span><b>₹{{ evalDetailAvail(e) }}L</b></div>
+                                    <div class="ed-line"><span>Coverage of required</span><b>{{ e.fin }}%</b></div>
+                                    <div class="ed-line"><span>Shortfall vs required</span><b>{{ evalDetailGap(e) > 0 ? ('₹' + evalDetailGap(e) + 'L') : 'None' }}</b></div>
+                                    <div class="ed-line ed-total"><span>Threshold {{ FIN_EVAL_PASS }}%</span><app-pill [tone]="e.financePass ? 'good' : 'crit'" [dot]="true">{{ e.financePass ? 'Clear' : 'Out of range' }}</app-pill></div>
+                                  </div>
+                                  <div class="ed-panel">
+                                    <div class="ed-h">Channel Management Evaluation</div>
+                                    <div class="ed-line"><span>Infrastructure score (recorded)</span><b>{{ e.infra.toFixed(1) }}/10</b></div>
+                                    <div class="ed-line ed-total"><span>Threshold {{ INFRA_THRESHOLD }}</span><app-pill [tone]="e.channelPass ? 'good' : 'warn'" [dot]="true">{{ e.infra.toFixed(1) }}/10 {{ e.channelPass ? 'Clear' : 'Below' }}</app-pill></div>
+                                  </div>
+                                </div>
+                                <div class="ed-route"><app-icon name="spark" [size]="13" /><span>{{ routeExplain(e) }}</span></div>
+                              </td>
+                            </tr>
+                          }
+                        }
+                      </tbody>
+                    </table>
+                  </div>
+                  <p class="muted-note" style="margin-top: 0.6rem">
+                    The Evaluation Agent scored each ticked lead against the ₹{{ REQUIRED_INVESTMENT }}L required investment and the {{ INFRA_THRESHOLD }}/10 infrastructure bar.
+                    {{ evalCheckedIds().length > 1
+                      ? (' All ' + evalCheckedIds().length + ' checked leads will be submitted — each is routed to Finance, Trade Marketing, or auto-cleared based on its result.')
+                      : (' Proceeding carries ' + proceed.c.name + ' into ' + ((proceed.financePass && proceed.channelPass) ? 'agreement (auto-cleared)' : 'the required review(s)') + '.') }}
+                  </p>
+
+                  <div class="mono-label" style="margin: 1.1rem 0 0.5rem">OPTIONAL</div>
+                  <app-toggle [on]="evalDocOn()" (toggled)="evalSetDocOn($event)"><strong>Document Intelligence Agent</strong> — {{ evalDocOn() ? 'extracting & matching' : "off (Acme Distribution doesn't verify capacity claims today)" }}</app-toggle>
+                  @if (evalDocOn()) {
+                    <div class="di-block">
+                      <div class="di-head">
+                        <span>Documents read for <strong>{{ proceed.c.name }}</strong> — {{ diDocs().length }} files</span>
+                        @if (diMismatches() > 0) {
+                          <app-pill tone="warn" [dot]="true">{{ diMismatches() }} field mismatch{{ diMismatches() > 1 ? 'es' : '' }}</app-pill>
+                        } @else {
+                          <app-pill tone="good" [dot]="true">All fields match</app-pill>
+                        }
+                      </div>
+                      <div class="di-docs">
+                        @for (d of diDocs(); track d.name) {
+                          <div class="di-doc">
+                            <span class="di-doc-ic"><app-icon name="documents" [size]="16" /></span>
+                            <div class="di-doc-body"><div class="di-doc-name">{{ d.name }}</div><div class="di-doc-file">{{ d.file }}</div></div>
+                            <app-pill [tone]="docAllOk(d) ? 'good' : 'warn'" [dot]="true">{{ docOkCount(d) }}/{{ d.fields.length }} fields match</app-pill>
+                            <app-button variant="ghost" size="sm" (click)="evalSetDocView(d)"><app-icon name="external" [size]="13" /> View</app-button>
+                          </div>
+                        }
+                      </div>
+                      <p class="muted-note" style="margin-top: 0.6rem">Open any document to see the extracted fields matched against what the applicant claimed.</p>
+                    </div>
+                  }
+                }
+              </app-card>
+
+              <app-modal [open]="!!evalDocView()" (closed)="evalSetDocView(null)" [title]="evalDocView()?.name ?? 'Document'" size="lg">
+                @if (evalDocView(); as dv) {
+                  <div class="doc-preview">
+                    <app-icon name="documents" [size]="30" />
+                    <div class="doc-preview-name">{{ dv.file }}</div>
+                    <div class="doc-preview-source">Document Intelligence Agent · extracted {{ dv.fields.length }} field{{ dv.fields.length > 1 ? 's' : '' }} from this file</div>
+                  </div>
+                  <div class="dtable-wrap" style="margin-top: 0.9rem">
+                    <table class="dtable">
+                      <thead><tr><th>Field</th><th>Claimed</th><th>Extracted</th><th>Match</th></tr></thead>
+                      <tbody>
+                        @for (f of dv.fields; track f.k) {
+                          <tr>
+                            <td class="strong">{{ f.k }}</td>
+                            <td>{{ f.claimed }}</td>
+                            <td>{{ f.extracted }}</td>
+                            <td [class.match-ok]="f.ok" [class.match-bad]="!f.ok">{{ f.ok ? '✓' : '!' }}</td>
+                          </tr>
+                        }
+                      </tbody>
+                    </table>
+                  </div>
+                }
+              </app-modal>
+
+              <div class="wizard-foot">
+                <app-button variant="text" (click)="step.set('candidates')">← Back</app-button>
+                <app-button [disabled]="!evalDone() || evalCheckedIds().length === 0" (click)="evalContinue()">
+                  Continue with {{ evalContinueLabel() }} →
+                </app-button>
+              </div>
+            </div>
+          } @else {
+            <div>
+              <app-card title="Evaluation Agent"><p class="muted-note">No leads are ticked for evaluation. Go back to the Leads step and tick at least one to score.</p></app-card>
+              <div class="wizard-foot"><app-button variant="text" (click)="step.set('candidates')">← Back</app-button></div>
+            </div>
+          }
+        } @else if (step() === 'finance-review' || step() === 'channel-review') {
+          <!-- ================= Step 5: reviews (finance + channel) ================= -->
+          @if (selected(); as candidate) {
+            <div class="review-layout">
+              <div class="review-main">
+                <div class="page-head" style="margin-bottom: 0.9rem">
+                  <h1>{{ reviewCode() }} · {{ reviewCaseRecord()?.town ?? '' }}{{ isReplacement() ? ' · Replacement DB' : '' }}</h1>
+                </div>
+                <div class="notify-bar" style="margin-bottom: 1rem">
+                  <app-icon name="spark" [size]="14" /> Routed out of the ASM's hands. Review the {{ reviewIsFinance() ? 'finance' : 'channel' }} insights and take action.
+                </div>
+
+                <div class="review-briefing-card">
+                  <div class="rb-head"><span class="rb-icon"><app-icon name="documents" [size]="16" /></span><div class="rb-title">Approval Briefing</div></div>
+                  <p class="rb-text">{{ reviewBriefing() }}</p>
+                  <div class="rb-flag">
+                    <app-icon name="flag" [size]="13" />
+                    <span>{{ reviewFlagText() }}</span>
+                    <button type="button" class="rb-details-link" (click)="reviewDetailsOpen.set(true)">View details</button>
+                  </div>
+                </div>
+
+                <app-card title="Follow up before deciding" className="stack">
+                  <div style="display: flex; gap: 0.5rem; flex-wrap: wrap">
+                    <app-button variant="ghost" size="sm" (click)="reviewEmailOpen.set(true)"><app-icon name="mail" [size]="13" /> Email {{ candidate.name }}</app-button>
+                    <app-button variant="ghost" size="sm" (click)="reviewRequestInfo()"><app-icon name="send" [size]="13" /> Request info from ASE/ASM</app-button>
+                  </div>
+                  @if (reviewEmailSentNote(); as note) {
+                    <p class="muted-note" style="margin-top: 0.7rem; margin-bottom: 0"><app-icon name="check" [size]="12" /> {{ note }}</p>
+                  }
+                </app-card>
+
+                <app-card title="Note for Leadership" className="stack">
+                  <textarea class="input" rows="3" maxlength="500" placeholder="Add context Leadership should know about this case before it reaches their sign-off…"
+                    [ngModel]="reviewLeadershipNote()" (ngModelChange)="reviewLeadershipNote.set($event)" style="width: 100%; resize: vertical"></textarea>
+                  <div class="row-between">
+                    <span class="char-count">{{ reviewLeadershipNote().length }} / 500</span>
+                    <app-button variant="ghost" size="sm" (click)="reviewSendLeadershipNote()" [disabled]="!reviewLeadershipNote().trim()">Save Note</app-button>
+                  </div>
+                  @if (reviewLeadershipSentNote(); as lnote) {
+                    <p class="muted-note" style="margin: 0"><app-icon name="check" [size]="12" /> {{ lnote }}</p>
+                  }
+                </app-card>
+
+                <app-modal [open]="reviewEmailOpen()" (closed)="reviewEmailOpen.set(false)" [title]="'Email ' + candidate.name">
+                  <div style="display: flex; flex-direction: column; gap: 0.75rem">
+                    <div class="field"><label>To</label><input class="input" [value]="reviewDistributorEmail()" disabled /></div>
+                    <div class="field"><label>Subject</label><input class="input" [ngModel]="reviewEmailSubject()" (ngModelChange)="reviewEmailSubject.set($event)" /></div>
+                    <div class="field"><label>Message</label><textarea class="input" rows="8" [ngModel]="reviewEmailBody()" (ngModelChange)="reviewEmailBody.set($event)" style="width: 100%; resize: vertical"></textarea></div>
+                    <div class="row-between" style="margin-top: 0.5rem">
+                      <app-button variant="ghost" (click)="reviewEmailOpen.set(false)">Cancel</app-button>
+                      <app-button (click)="reviewSendEmail()"><app-icon name="mail" [size]="13" /> Send email</app-button>
+                    </div>
+                  </div>
+                </app-modal>
+
+                <app-modal [open]="reviewDetailsOpen()" (closed)="reviewDetailsOpen.set(false)" title="Flag details">
+                  <div style="display: flex; flex-direction: column; gap: 0.9rem">
+                    <p style="font-size: 0.86rem; color: var(--ink-soft); line-height: 1.55">{{ reviewFlagText() }}</p>
+                    @if (reviewIsFinance()) {
+                      <div class="kv-grid">
+                        <div class="kv"><div class="k">Required investment</div><div class="v">₹{{ REQUIRED_INVESTMENT }}L</div></div>
+                        <div class="kv"><div class="k">Available (own + CC)</div><div class="v">₹{{ reviewAvailable() }}L</div></div>
+                        <div class="kv"><div class="k">Financial Evaluation</div><div class="v">{{ finEval() }}%</div></div>
+                        <div class="kv"><div class="k">Shortfall</div><div class="v">₹{{ reviewShortfall() }}L ({{ reviewShortfallPct() }}%)</div></div>
+                      </div>
+                    } @else {
+                      <div class="kv-grid">
+                        <div class="kv"><div class="k">Threshold</div><div class="v">{{ INFRA_THRESHOLD }}/10</div></div>
+                        <div class="kv"><div class="k">Score</div><div class="v">{{ infraTotal().toFixed(1) }}/10</div></div>
+                      </div>
+                    }
+                  </div>
+                </app-modal>
+
+                <app-card className="stack">
+                  <div>
+                    <div class="row-between" style="margin-bottom: 0.6rem">
+                      <div class="card-title" style="margin: 0; display: flex; align-items: center; gap: 0.5rem">Case Discussion <app-pill tone="ai" [dot]="true">{{ reviewMsgs().length }}</app-pill></div>
+                    </div>
+                    <div class="rthread">
+                      @for (m of reviewMsgs(); track $index) {
+                        <div class="rmsg">
+                          <span class="avatar" [style.background]="m.color">{{ initials(m.who) }}</span>
+                          <div style="flex: 1">
+                            <div class="who">{{ m.who }}<span>{{ m.role }}</span></div>
+                            <div class="txt">{{ m.txt }}</div>
+                          </div>
+                        </div>
+                      }
+                    </div>
+                    <form class="rthread-input" (ngSubmit)="reviewSend()">
+                      <input [ngModel]="reviewDraft()" (ngModelChange)="reviewDraft.set($event)" name="reviewDraft" [placeholder]="'Reply as ' + reviewTeamLabel() + '…'" />
+                      <app-button variant="ghost" size="sm" type="submit">Send</app-button>
+                    </form>
+                    <p class="muted-note">✦ Communication Agent notified R. Malhotra (ASM) automatically.</p>
+                  </div>
+                </app-card>
+
+                <div class="wizard-foot">
+                  <app-button variant="text" (click)="step.set('evaluate')">← Back</app-button>
+                </div>
+              </div>
+
+              <div class="review-side">
+                <app-card title="Review Summary" className="stack">
+                  @if (reviewIsFinance()) {
+                    <div class="rs-row"><span>Financial Evaluation</span><b>{{ finEval() }}%</b></div>
+                    <div class="rs-row"><span>Investment Required</span><b>₹{{ REQUIRED_INVESTMENT }}L</b></div>
+                    <div class="rs-row"><span>Available (Own + CC)</span><b>₹{{ reviewAvailable() }}L</b></div>
+                    @if (reviewShortfall()) {
+                      <div class="rs-row rs-crit"><span>Investment Shortfall</span><b>₹{{ reviewShortfall() }}L ({{ reviewShortfallPct() }}%)</b></div>
+                    }
+                  } @else {
+                    <div class="rs-row"><span>Channel Management Evaluation</span><b>{{ infraTotal().toFixed(1) }}/10</b></div>
+                    <div class="rs-row"><span>Threshold</span><b>{{ INFRA_THRESHOLD }}/10</b></div>
+                    @if (infraTotal() < INFRA_THRESHOLD) {
+                      <div class="rs-row rs-crit"><span>Score Gap</span><b>{{ (INFRA_THRESHOLD - infraTotal()).toFixed(1) }} pts</b></div>
+                    }
+                  }
+                </app-card>
+
+                <app-card title="Decision" className="stack">
+                  @if (reviewIsReviewer()) {
+                    <div class="decision-opts">
+                      <label class="decision-opt" [class.on]="reviewDecisionPick() === 'approved'">
+                        <input type="radio" name="decision" [checked]="reviewDecisionPick() === 'approved'" (change)="reviewDecisionPick.set('approved')" />
+                        <span><span class="d-label">Approve</span><span class="d-sub">Meets all requirements</span></span>
+                      </label>
+                      <label class="decision-opt" [class.on]="reviewDecisionPick() === 'conditional'">
+                        <input type="radio" name="decision" [checked]="reviewDecisionPick() === 'conditional'" (change)="reviewDecisionPick.set('conditional')" />
+                        <span><span class="d-label">Conditional Approval</span><span class="d-sub">Pending conditions to be met</span></span>
+                      </label>
+                      <label class="decision-opt" [class.on]="reviewDecisionPick() === 'rejected'">
+                        <input type="radio" name="decision" [checked]="reviewDecisionPick() === 'rejected'" (change)="reviewDecisionPick.set('rejected')" />
+                        <span><span class="d-label">Reject</span><span class="d-sub">Does not meet requirements</span></span>
+                      </label>
+                    </div>
+                    <div class="field" style="margin-bottom: 0">
+                      <label>Reason / Notes (required)</label>
+                      <textarea class="input" rows="3" maxlength="500" placeholder="Add reason for your decision…"
+                        [ngModel]="reviewDecisionNote()" (ngModelChange)="reviewDecisionNote.set($event)" style="width: 100%; resize: vertical"></textarea>
+                      <div class="char-count" style="text-align: right; margin-top: 0.3rem">{{ reviewDecisionNote().length }} / 500</div>
+                    </div>
+                    <app-button style="width: 100%" [disabled]="!reviewDecisionPick() || !reviewDecisionNote().trim()" (click)="reviewSubmitDecision()">Submit Decision</app-button>
+                    <app-button variant="ghost" size="sm" style="width: 100%" (click)="reviewRequestInfo()">Request info from ASE/ASM</app-button>
+                  } @else if (reviewAlreadyApproved()) {
+                    <p class="muted-note" style="margin: 0">Approved by {{ reviewTeamLabel() }} in Approvals — you can carry on.</p>
+                    <app-button style="width: 100%" (click)="reviewApprove()">Continue →</app-button>
+                  } @else {
+                    <app-pill tone="warn" [dot]="true">Sent to {{ reviewTeamLabel() }}</app-pill>
+                    <p class="muted-note" style="margin: 0">The application can't move forward until {{ reviewTeamLabel() }} acts. Switch to the {{ reviewTeamLabel() }} persona or open Approvals to review it.</p>
+                  }
+                </app-card>
+
+                <app-card title="Application Info" className="stack">
+                  <div class="rs-row"><span>Partner / Firm</span><b>{{ candidate.name }}</b></div>
+                  <div class="rs-row"><span>Partner Type</span><b>{{ isReplacement() ? 'Replacement DB' : candidate.dbCategory }}</b></div>
+                  <div class="rs-row"><span>Region</span><b>{{ reviewCaseRecord()?.town ?? '' }}</b></div>
+                  <button type="button" class="rb-details-link" (click)="openLeadsPage()">View full application →</button>
+                </app-card>
+              </div>
+            </div>
+          }
+        } @else if (step() === 'agreement') {
+          <!-- ================= Step 6: agreement ================= -->
+          @if (selected(); as candidate) {
+            <div>
+              <div class="agreement-doc">
+                <h3 style="margin-bottom: 0.5rem">Distributor Appointment Agreement</h3>
+                <p>This Agreement appoints <strong>{{ candidate.name }}</strong> as an authorized distributor of Acme Distribution Staples products for
+                  the territory of <strong>{{ candidate.town }}, Maharashtra</strong>, effective <strong>3 July 2026</strong>, subject to
+                  Acme Distribution's standard distributor terms and the coverage commitment of {{ candidate.coverageOutlets.toLocaleString() }} outlets.</p>
+              </div>
+              <div class="gate-callout" [style.background]="agreementSent() ? 'var(--good-bg)' : 'var(--warn-bg)'" [style.border-color]="agreementSent() ? '#bfe3d0' : '#f0dcae'">
+                <span class="flag" [style.background]="agreementSent() ? 'var(--good)' : 'var(--warn)'">{{ agreementSent() ? 'Sent' : 'Draft' }}</span>
+                <p [style.color]="agreementSent() ? 'var(--good-text)' : 'var(--warn-text)'">
+                  {{ agreementSent() ? ('Official onboarding welcome + e-signature request sent to ' + agreementTo() + ' — awaiting counter-signature.') : ('Not yet sent. Sending will email ' + agreementTo() + ' the official onboarding welcome and the agreement for e-signature.') }}
+                </p>
+              </div>
+              @if (agreementSendError(); as err) {
+                <p class="muted-note" style="color: var(--crit-text)"><app-icon name="alert" [size]="12" /> {{ err }}</p>
+              }
+              @if (agreementSent()) {
+                <div class="field" style="margin-top: 0.9rem">
+                  <label>Note for Leadership (optional)</label>
+                  <p class="muted-note" style="margin-top: 0">Anything {{ authority }} should know before signing off — this is the final approval, Channel Development doesn't complete onboarding on its own anymore.</p>
+                  <textarea class="input" rows="2" placeholder="e.g. e-signature sent, strong auto-clear on both checks…"
+                    [ngModel]="agreementNote()" (ngModelChange)="agreementNote.set($event)" style="width: 100%; resize: vertical"></textarea>
+                </div>
+              }
+              <div class="wizard-foot">
+                <app-button variant="text" (click)="step.set('evaluate')">← Back</app-button>
+                @if (agreementSent()) {
+                  <app-button (click)="agreementSendToLeadership()" [disabled]="agreementRoutedToLeadership()">{{ agreementRoutedToLeadership() ? 'Sent to Leadership…' : 'Send to Leadership for final approval →' }}</app-button>
+                } @else {
+                  <app-button (click)="agreementSendForSignature()" [disabled]="agreementSending()">{{ agreementSending() ? 'Sending…' : 'Send for e-signature →' }}</app-button>
+                }
+              </div>
+            </div>
+          }
+        }
+      </div>
+    </div>
+  }
+</div>

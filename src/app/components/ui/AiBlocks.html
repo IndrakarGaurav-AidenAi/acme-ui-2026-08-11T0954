@@ -1,0 +1,14 @@
+@for (block of blocks(); track $index) {
+  @if (block.type === 'bullets') {
+    <div class="ai-bullets">
+      @for (item of block.items; track $index) {
+        <div class="ai-bullet">
+          <span class="ai-bullet-dot" aria-hidden="true">•</span>
+          <span class="ai-bullet-body">{{ item }}</span>
+        </div>
+      }
+    </div>
+  } @else {
+    <p class="ai-para">{{ block.text }}</p>
+  }
+}

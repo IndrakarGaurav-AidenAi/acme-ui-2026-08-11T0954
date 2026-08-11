@@ -1,0 +1,9 @@
+<app-modal [open]="open()" size="lg" [title]="title() ?? 'Distributor Disengagement Recommendation Form'" (closed)="closed.emit()">
+  <app-disengagement-form-fields [(form)]="f" [readOnly]="readOnly()" />
+  <div class="row-between" style="margin-top: 0.85rem">
+    <app-button variant="ghost" (click)="closed.emit()">{{ readOnly() ? 'Close' : 'Cancel' }}</app-button>
+    @if (!readOnly()) {
+      <app-button [disabled]="!canSubmit()" (click)="submitted.emit(f())">{{ submitLabel() ?? 'Submit Disengagement Form →' }}</app-button>
+    }
+  </div>
+</app-modal>

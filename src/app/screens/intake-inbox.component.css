@@ -1,0 +1,68 @@
+/* Manual upload — sample template + upload actions */
+.upload-actions { display: flex; gap: 0.6rem; margin-bottom: 0.9rem; }
+
+/* Disengagement Form, rendered inline in Create Lead once "Replacement DB" is picked —
+   a distinct bordered section so the whole "next sheet" reads as its own block, not just
+   more fields loose in the form. */
+.disc-inline-card { background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--r-md);
+  padding: 1rem 1.1rem; margin-top: 0.5rem; }
+.disc-inline-card .field:last-child { margin-bottom: 0; }
+
+/* Intake list — extracted-fields cell */
+.ii-fields { font-size: 0.82rem; color: var(--ink-soft); }
+.ii-viewall { display: block; margin-top: 0.25rem; background: none; border: none; padding: 0; cursor: pointer;
+  font-size: 0.78rem; font-weight: 700; color: var(--ai-text); }
+
+/* Intake review modal — richer, card-based layout */
+.rv-title { font-size: 0.84rem; color: var(--ink-soft); margin-bottom: 1rem; font-style: italic; }
+
+.rv-flag { display: flex; gap: 0.55rem; align-items: flex-start; padding: 0.7rem 0.85rem; border-radius: var(--r-md);
+  background: var(--warn-bg); border: 1px solid #f0dcae; margin-bottom: 1.1rem; }
+.rv-flag .ic { flex: none; width: 22px; height: 22px; border-radius: 7px; background: var(--warn); color: #fff;
+  display: flex; align-items: center; justify-content: center; margin-top: 0.05rem; }
+.rv-flag p { font-size: 0.84rem; color: var(--warn-text); line-height: 1.5; font-weight: 500; }
+
+.rv-section-label { font-size: 0.64rem; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase;
+  color: var(--ink-mute); margin: 0 0 0.6rem; display: flex; align-items: center; gap: 0.5rem; }
+.rv-section-label .count { color: var(--ink-soft); font-weight: 700; letter-spacing: 0; text-transform: none; }
+
+/* extracted fields as a two-column grid of mini cards */
+.rv-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; margin-bottom: 1.2rem; }
+@media (max-width: 560px) { .rv-fields { grid-template-columns: 1fr; } }
+.rv-field { background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--r-md); padding: 0.55rem 0.7rem; }
+.rv-field.missing { background: var(--warn-bg); border-color: #f0dcae; }
+.rv-field .k { font-size: 0.64rem; font-weight: 700; letter-spacing: 0.03em; text-transform: uppercase; color: var(--ink-mute); margin-bottom: 0.2rem; }
+.rv-field .v { font-size: 0.88rem; font-weight: 700; color: var(--ink); line-height: 1.35; }
+.rv-field.missing .v { color: var(--warn-text); }
+
+/* candidate rows (bulk upload) */
+.rv-cand { display: flex; align-items: center; gap: 0.7rem; padding: 0.6rem 0.75rem; border: 1px solid var(--border);
+  border-radius: var(--r-md); background: var(--surface-2); margin-bottom: 0.5rem; }
+.rv-cand .av { flex: none; width: 30px; height: 30px; border-radius: 9px; background: var(--ai-bg); color: var(--ai-text);
+  display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 0.8rem; }
+.rv-cand .nm { font-size: 0.88rem; font-weight: 700; color: var(--ink); }
+.rv-cand .tw { font-size: 0.75rem; color: var(--ink-mute); }
+
+/* required documents checklist */
+.rv-docs { display: flex; flex-direction: column; gap: 0.4rem; }
+.rv-doc { display: flex; align-items: center; gap: 0.6rem; padding: 0.55rem 0.75rem; border-radius: var(--r-md);
+  border: 1px solid var(--border); background: var(--surface-2); }
+.rv-doc.ok { background: var(--good-bg); border-color: #bfe3d0; }
+.rv-doc.miss { background: var(--crit-bg); border-color: #f3caca; }
+.rv-doc .dot { flex: none; width: 20px; height: 20px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+  font-size: 0.7rem; font-weight: 800; color: #fff; }
+.rv-doc.ok .dot { background: var(--good); }
+.rv-doc.miss .dot { background: var(--crit); }
+.rv-doc .name { flex: 1; font-size: 0.85rem; font-weight: 600; color: var(--ink); }
+.rv-doc .tag { font-size: 0.72rem; font-weight: 700; }
+.rv-doc.ok .tag { color: var(--good-text); }
+.rv-doc.miss .tag { color: var(--crit-text); }
+
+.rv-doc-note { font-size: 0.78rem; color: var(--ink-mute); margin-top: 0.6rem; line-height: 1.5; }
+.rv-doc-view { padding: 0.15rem 0.6rem !important; }
+
+/* document preview modal */
+.doc-preview { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 0.4rem;
+  padding: 1.6rem 1rem; border: 1px dashed var(--border-strong); border-radius: var(--r-lg); background: var(--surface-2); color: var(--ink-mute); }
+.doc-preview-name { font-size: 0.9rem; font-weight: 800; color: var(--ink); }
+.doc-preview-source { font-size: 0.76rem; color: var(--ink-mute); }

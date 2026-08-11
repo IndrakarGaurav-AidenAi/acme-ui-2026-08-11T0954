@@ -1,0 +1,28 @@
+@if (clickable()) {
+  <button type="button" class="kpi kpi-clickable" (click)="opened.emit(k())">
+    <div class="kpi-head">
+      @if (showIcon() && k().icon; as icon) {
+        <span class="kpi-ic p360-tile tone-{{ k().tone ?? 'ai' }}"><app-icon [name]="icon" [size]="15" /></span>
+      }
+      <span class="k-label">{{ k().label }}</span>
+    </div>
+    <div class="k-value">{{ k().value }}</div>
+    @if (k().sub) {
+      <div class="p360-kpi-sub">{{ k().sub }}</div>
+    }
+    <span class="kpi-explain">What makes this up? →</span>
+  </button>
+} @else {
+  <div class="kpi">
+    <div class="kpi-head">
+      @if (showIcon() && k().icon; as icon) {
+        <span class="kpi-ic p360-tile tone-{{ k().tone ?? 'ai' }}"><app-icon [name]="icon" [size]="15" /></span>
+      }
+      <span class="k-label">{{ k().label }}</span>
+    </div>
+    <div class="k-value">{{ k().value }}</div>
+    @if (k().sub) {
+      <div class="p360-kpi-sub">{{ k().sub }}</div>
+    }
+  </div>
+}

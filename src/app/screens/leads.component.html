@@ -1,0 +1,99 @@
+<div>
+  <div class="page-head">
+    <h1>Leads <span class="page-info-ic" [title]="isAse()
+        ? 'Leads you reviewed and created from the Intake Inbox. Tick-marked ones are shortlisted — Channel Development compares them side by side and runs the appointment.'
+        : 'Leads the field team reviewed and created from the Intake Inbox. Shortlisted ones are ready to compare side by side in New Application.'"><app-icon name="help" [size]="13"></app-icon></span></h1>
+  </div>
+
+  @if (leads().length === 0) {
+    <div class="card" [style.padding]="'2rem 1.5rem'" [style.text-align]="'center'">
+      <p [style.font-weight]="700" [style.color]="'var(--ink)'" [style.margin-bottom]="'0.35rem'">No leads created yet</p>
+      <p class="muted-note" [style.margin-bottom]="'1rem'">
+        Review an enquiry in the Intake Inbox and click "Review &amp; create lead" — it will appear here.
+      </p>
+      <app-button (click)="openIntakeInbox()"><app-icon name="comms" [size]="14"></app-icon> Open Intake Inbox</app-button>
+    </div>
+  } @else {
+    <div class="card" [style.padding]="'1rem 1.15rem'">
+      <div class="row-between" [style.margin-bottom]="'0.6rem'" [style.flex-wrap]="'wrap'" [style.gap]="'0.6rem'">
+        <div>
+          <div [style.font-size]="'0.92rem'" [style.font-weight]="800" [style.color]="'var(--ink)'">
+            {{ isAse() ? 'Leads you created' : 'Leads created by the field team' }} ({{ leads().length }})
+          </div>
+          <div [style.font-size]="'0.76rem'" [style.color]="'var(--ink-mute)'" [style.margin-top]="'0.15rem'">
+            @if (shortlisted().length > 0) {
+              {{ shortlisted().length }} shortlisted for comparison — Channel Development compares these side by side in New Application. Click a lead for its full profile.
+            } @else {
+              None shortlisted for comparison yet. Click a lead for its full profile.
+            }
+          </div>
+        </div>
+        @if (canOpenWizard()) {
+          <app-button size="sm" (click)="openNewApplication()">
+            <app-icon name="new" [size]="13"></app-icon> {{ shortlisted().length > 1 ? 'Compare in New Application' : 'Open in New Application' }}
+          </app-button>
+        }
+      </div>
+      <div class="dtable-wrap" [style.border]="'none'">
+        <table class="dtable">
+          <thead><tr><th></th><th>Lead</th><th>Town · Category</th><th>Turnover (₹L/mo)</th><th>Coverage (OL)</th><th>Stage</th><th>Confidence</th><th>Comparison</th></tr></thead>
+          <tbody>
+            @for (c of leads(); track c.id) {
+              <tr class="clickable" (click)="toggleExpanded(c.id)">
+                <td [style.width.px]="26" [style.color]="'var(--ink-mute)'">{{ expandedId() === c.id ? '▾' : '▸' }}</td>
+                <td class="strong">{{ c.name }}@if (c.isBestMatch) {<span [style.margin-left]="'0.4rem'" [style.display]="'inline-block'"><app-pill tone="ai">Best Match</app-pill></span>}</td>
+                <td>{{ c.town }} · {{ c.dbCategory }}</td>
+                <td>{{ c.turnoverMonthly }}</td>
+                <td>{{ c.coverageOutlets.toLocaleString() }}</td>
+                <td><app-pill [tone]="c.stage === 'rejected' ? 'crit' : 'warn'">{{ stageLabel(c) }}</app-pill></td>
+                <td>{{ c.confidencePct }}%</td>
+                <td>
+                  @if (isShortlisted(c.id)) {
+                    <app-pill tone="good" [dot]="true">Shortlisted</app-pill>
+                  } @else {
+                    <span [style.color]="'var(--ink-mute)'" [style.font-size]="'0.78rem'">—</span>
+                  }
+                </td>
+              </tr>
+              @if (expandedId() === c.id) {
+                <tr class="lead-detail-row">
+                  <td [attr.colspan]="8">
+                    <div class="lead-detail">
+                      <div class="ld-grid">
+                        @for (s of leadStats(c); track s.k) {
+                          <div class="ld-stat">
+                            <span class="k">{{ s.k }}</span>
+                            <span class="v">{{ s.v }}</span>
+                          </div>
+                        }
+                      </div>
+                      <div class="ld-checks">
+                        <app-pill [tone]="chanPass(c) ? 'good' : 'warn'" [dot]="true">Channel {{ c.infraScore.toFixed(1) }}/10 · {{ chanPass(c) ? 'Clear' : 'Below ' + INFRA_THRESHOLD.toFixed(1) + ' threshold' }}</app-pill>
+                        <app-pill [tone]="finPass(c) ? 'good' : 'crit'" [dot]="true">Financial {{ c.finEvalPct }}% · {{ finPass(c) ? 'Clear' : 'Out of range' }}</app-pill>
+                        <app-pill [tone]="finPass(c) && chanPass(c) ? 'good' : 'warn'">{{ finPass(c) && chanPass(c) ? 'Likely auto-clear' : 'Likely needs review' }}</app-pill>
+                      </div>
+                      <div class="ld-meta">
+                        Created by <b>{{ createdByLabel(c) }}</b>
+                        @if (c.createdAt) {
+                          · {{ createdAtLabel(c) }}
+                        }
+                        · {{ isShortlisted(c.id) ? 'Shortlisted for side-by-side comparison' : 'Not in the comparison shortlist yet' }}
+                      </div>
+                      @if (c.stage === 'rejected') {
+                        <app-button size="sm" variant="ghost" (click)="onReinstate(c.id)">↺ Send back to New Application</app-button>
+                      } @else if (canOpenWizard()) {
+                        <app-button size="sm" (click)="onCompare()">Compare in New Application →</app-button>
+                      } @else {
+                        <p class="muted-note" [style.margin]="0">Channel Development picks this up in New Application for the side-by-side comparison and appointment.</p>
+                      }
+                    </div>
+                  </td>
+                </tr>
+              }
+            }
+          </tbody>
+        </table>
+      </div>
+    </div>
+  }
+</div>

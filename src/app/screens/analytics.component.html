@@ -1,0 +1,1147 @@
+<div>
+  <div class="page-head">
+    <div class="row-between" style="flex-wrap: wrap; gap: 0.8rem">
+      <div class="an-greet">
+        <h1>{{ greeting() }}, {{ greetName() }}</h1>
+      </div>
+      <div class="an2-controls">
+        <div class="an2-filters-wrap" #rangeWrap>
+          <button class="an2-daterange" (click)="rangeOpen.set(!rangeOpen())">
+            <app-icon name="calendar" [size]="14" /> {{ dateRangeLabel() }}
+          </button>
+          @if (rangeOpen()) {
+            <div class="an2-filters-pop">
+              @for (p of RANGE_PRESETS; track p) {
+                <button class="pt-filter-chip" [class.on]="rangePreset() === p" style="width: 100%; margin-bottom: 0.3rem"
+                  (click)="rangePreset.set(p); rangeOpen.set(false)">
+                  {{ RANGE_LABEL[p] }}
+                </button>
+              }
+            </div>
+          }
+        </div>
+        <div class="an2-filters-wrap" #filtersWrap>
+          <app-button variant="ghost" (click)="filtersOpen.set(!filtersOpen())">
+            <app-icon name="filter" [size]="13" /> Filters
+            @if (activeFilterCount() > 0) { <span class="an2-filter-badge">{{ activeFilterCount() }}</span> }
+          </app-button>
+          @if (filtersOpen()) {
+            <div class="an2-filters-pop">
+              <label class="an2-filter-row">
+                <span>Category</span>
+                <select class="mini-select" [ngModel]="category()" (ngModelChange)="setCategory($event)">
+                  <option value="all">All categories</option>
+                  @for (c of categories(); track c) { <option [value]="c">{{ c }}</option> }
+                </select>
+              </label>
+              <label class="an2-filter-row">
+                <span>Status</span>
+                <select class="mini-select" [ngModel]="status()" (ngModelChange)="setStatus($event)">
+                  <option value="all">All statuses</option>
+                  <option value="on_track">On track</option>
+                  <option value="watch">Watch</option>
+                  <option value="at_risk">At risk</option>
+                </select>
+              </label>
+              @if (activeFilterCount() > 0) {
+                <button class="btn text sm" style="padding: 0" (click)="resetFilters()">Reset filters</button>
+              }
+            </div>
+          }
+        </div>
+        <app-button (click)="exportView()"><app-icon name="download" [size]="14" /> Export</app-button>
+      </div>
+    </div>
+  </div>
+
+  <div class="tabs" style="margin-bottom: 1rem">
+    @if (visibleSections().includes('overview')) {
+      <button class="tab" [class.active]="tab() === 'overview'" (click)="tab.set('overview')">Overview</button>
+    }
+    @if (visibleSections().includes('detail')) {
+      <button class="tab" [class.active]="tab() === 'detail'" (click)="tab.set('detail')">Distributor Detail</button>
+    }
+    @if (visibleSections().includes('efficiency')) {
+      <button class="tab" [class.active]="tab() === 'efficiency'" (click)="tab.set('efficiency')">Onboarding Efficiency</button>
+    }
+  </div>
+
+  @if (visibleSections().length === 0) {
+    <app-card><p style="padding: 0.5rem 0">Your persona doesn't have access to any Analytics tab — set by the Super Admin in Admin &gt; Data access.</p></app-card>
+  } @else if (tab() === 'overview') {
+    <div class="an2-stack">
+      <div class="an2-kpis">
+        <button type="button" class="an2-kpi an2-kpi-btn" (click)="showActivePartners.set(true)">
+          <div class="an2-kpi-top">
+            <span class="an2-kpi-label">Active Distributors</span>
+            <span class="an2-kpi-ic tone-ai"><app-icon name="partners" [size]="14" /></span>
+          </div>
+          <div class="an2-kpi-val">{{ activeDistributorPartners().length }}</div>
+          <div class="an2-kpi-sub"><span [class]="activeSub().cls">{{ activeSub().text }}</span></div>
+          <div class="an2-kpi-spark"><app-sparkline [data]="activeTrend()" [color]="sparkColor('ai')" [responsive]="true" [height]="28"></app-sparkline></div>
+          <span class="an2-kpi-hint">What made this? →</span>
+        </button>
+        <button type="button" class="an2-kpi an2-kpi-btn" (click)="breakdown.set('on_track')">
+          <div class="an2-kpi-top">
+            <span class="an2-kpi-label">On Track</span>
+            <span class="an2-kpi-ic tone-good"><app-icon name="check" [size]="14" /></span>
+          </div>
+          <div class="an2-kpi-val">{{ statusCounts().on_track }}</div>
+          <div class="an2-kpi-sub"><span [class]="onTrackSub().cls">{{ onTrackSub().text }}</span></div>
+          @if (onTrackTrend(); as trend) {
+            <div class="an2-kpi-spark"><app-sparkline [data]="trend" [color]="sparkColor('good')" [responsive]="true" [height]="28"></app-sparkline></div>
+          }
+          <span class="an2-kpi-hint">What made this? →</span>
+        </button>
+        <button type="button" class="an2-kpi an2-kpi-btn" (click)="breakdown.set('attainment')">
+          <div class="an2-kpi-top">
+            <span class="an2-kpi-label">Avg Target Attainment</span>
+            <span class="an2-kpi-ic tone-blue"><app-icon name="target" [size]="14" /></span>
+          </div>
+          <div class="an2-kpi-val">{{ avgAttain() }}%</div>
+          <div class="an2-kpi-sub"><span [class]="attainSub().cls">{{ attainSub().text }}</span></div>
+          <div class="an2-kpi-spark"><app-sparkline [data]="attainTrend()" [color]="sparkColor('blue')" [responsive]="true" [height]="28"></app-sparkline></div>
+          <span class="an2-kpi-hint">What made this? →</span>
+        </button>
+        <button type="button" class="an2-kpi an2-kpi-btn" (click)="breakdown.set('coverage')">
+          <div class="an2-kpi-top">
+            <span class="an2-kpi-label">Avg Coverage</span>
+            <span class="an2-kpi-ic tone-warn"><app-icon name="analytics" [size]="14" /></span>
+          </div>
+          <div class="an2-kpi-val">{{ avgCoverage() }}%</div>
+          <div class="an2-kpi-sub">{{ coverageAboveN() }} of {{ dbsN() }} at/above plan</div>
+          <span class="an2-kpi-hint">What made this? →</span>
+        </button>
+        <button type="button" class="an2-kpi an2-kpi-btn" (click)="breakdown.set('low_fill')">
+          <div class="an2-kpi-top">
+            <span class="an2-kpi-label">Low Fill Rate</span>
+            <span class="an2-kpi-ic tone-crit"><app-icon name="alert" [size]="14" /></span>
+          </div>
+          <div class="an2-kpi-val">{{ lowFillCount() }}</div>
+          <div class="an2-kpi-sub">{{ pctOf(lowFillCount(), dbsN()) }}% of active</div>
+          <span class="an2-kpi-hint">What made this? →</span>
+        </button>
+        <button type="button" class="an2-kpi an2-kpi-btn" (click)="breakdown.set('tenure')">
+          <div class="an2-kpi-top">
+            <span class="an2-kpi-label">Avg Partner Tenure</span>
+            <span class="an2-kpi-ic tone-ai"><app-icon name="target" [size]="14" /></span>
+          </div>
+          <div class="an2-kpi-val">{{ avgTenureYrs().toFixed(1) }} yrs</div>
+          <div class="an2-kpi-sub">How long DBs have been with Acme Distribution</div>
+          <span class="an2-kpi-hint">What made this? →</span>
+        </button>
+      </div>
+
+      <app-modal [open]="!!breakdown()" [title]="breakdown() ? OVERVIEW_KPI_TITLE[breakdown()!] : ''" (closed)="breakdown.set(null)">
+        <div class="pt-breakdown">
+          @if (breakdownRows(breakdown()).length === 0) {
+            <p class="muted-note">No distributors contribute to this figure right now.</p>
+          } @else {
+            @for (row of breakdownRows(breakdown()); track row.d.id) {
+              <button class="pt-breakdown-row" (click)="navToDbBreakdown(row.d)">
+                <span class="pt-breakdown-main">
+                  <span class="n">{{ row.d.name }}</span>
+                  <span class="t">{{ row.d.town }} · {{ row.d.category }}</span>
+                </span>
+                <span class="pt-breakdown-metric"><span class="v">{{ row.metric }}</span></span>
+              </button>
+            }
+          }
+        </div>
+      </app-modal>
+
+      <app-modal [open]="showActivePartners()" title="Active Distributors" (closed)="showActivePartners.set(false)">
+        <div class="pt-breakdown">
+          @if (activeDistributorPartners().length === 0) {
+            <p class="muted-note">No active distributor partners right now.</p>
+          } @else {
+            @for (p of activeDistributorPartners(); track p.id) {
+              <button class="pt-breakdown-row" (click)="navToActivePartner(p)">
+                <span class="pt-breakdown-main">
+                  <span class="n">{{ p.legalName }}</span>
+                  <span class="t">{{ p.town }}, {{ p.state }}</span>
+                </span>
+                <span class="pt-breakdown-metric"><span class="v">{{ p.status === 'active' ? 'Active' : 'In review' }}</span></span>
+              </button>
+            }
+          }
+        </div>
+      </app-modal>
+
+      <div class="an-row2">
+        <app-card>
+          <!-- Partner Aging -->
+          <div class="an2-chart">
+            <div class="an2-chart-head">
+              <span class="card-title" style="margin: 0">Partner Aging — onboarded vs deboarded</span>
+              <div class="an-aging-controls">
+                <div class="chart-legend">
+                  <span class="lg"><span class="sw" style="background: var(--crit); border-radius: 50%"></span> Onboarded</span>
+                  <span class="lg"><span class="sw" style="background: var(--warn); border-radius: 50%"></span> Deboarded</span>
+                </div>
+                <select class="mini-select" [ngModel]="agingTenure()" (ngModelChange)="setAgingTenure($event)" aria-label="Filter by tenure">
+                  <option value="all">All tenure</option>
+                  @for (b of TENURE_BUCKETS; track b) { <option [value]="b">{{ b }}</option> }
+                </select>
+              </div>
+            </div>
+            <div class="an-aging-box">
+              <svg [attr.viewBox]="'0 0 ' + agingDims.W + ' ' + agingDims.H" class="an-aging-svg" role="img" aria-label="Partners onboarded and deboarded per month">
+                <defs>
+                  <linearGradient id="an-aging-grad-on" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stop-color="var(--crit)" stop-opacity="0.2" />
+                    <stop offset="100%" stop-color="var(--crit)" stop-opacity="0" />
+                  </linearGradient>
+                  <linearGradient id="an-aging-grad-off" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stop-color="var(--warn)" stop-opacity="0.2" />
+                    <stop offset="100%" stop-color="var(--warn)" stop-opacity="0" />
+                  </linearGradient>
+                </defs>
+                @for (t of agingTicks(); track $index) {
+                  <g>
+                    <line [attr.x1]="agingXFor(0)" [attr.x2]="agingXFor(agingSeries().length - 1)" [attr.y1]="agingYFor(t)" [attr.y2]="agingYFor(t)" stroke="var(--border)" stroke-width="1" />
+                    <text [attr.x]="agingXFor(0) - 8" [attr.y]="agingYFor(t) + 4" text-anchor="end" font-size="10" fill="var(--ink-mute)">{{ t }}</text>
+                  </g>
+                }
+                @if (agingActive() !== null) {
+                  <line [attr.x1]="agingXFor(agingActive()!)" [attr.x2]="agingXFor(agingActive()!)" [attr.y1]="agingPadTop" [attr.y2]="agingPadTop + agingInnerHeight" stroke="var(--border-strong)" stroke-width="1" stroke-dasharray="3 3" />
+                }
+                <path [attr.d]="agingAreaPath('onboarded')" fill="url(#an-aging-grad-on)"></path>
+                <path [attr.d]="agingAreaPath('deboarded')" fill="url(#an-aging-grad-off)"></path>
+                <polyline [attr.points]="agingLine('onboarded')" fill="none" stroke="var(--crit)" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round" />
+                <polyline [attr.points]="agingLine('deboarded')" fill="none" stroke="var(--warn)" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round" />
+                @for (s of agingSeries(); track $index; let i = $index) {
+                  <g>
+                    <circle [attr.cx]="agingXFor(i)" [attr.cy]="agingYFor(s.onboarded.length)" [attr.r]="agingActive() === i ? 4.2 : 3.2" fill="var(--surface)" stroke="var(--crit)" stroke-width="2" style="transition: r 0.1s" />
+                    <circle [attr.cx]="agingXFor(i)" [attr.cy]="agingYFor(s.deboarded.length)" [attr.r]="agingActive() === i ? 4.2 : 3.2" fill="var(--surface)" stroke="var(--warn)" stroke-width="2" style="transition: r 0.1s" />
+                    <rect [attr.x]="agingXFor(i) - agingInnerWidth / agingSeries().length / 2" [attr.y]="agingPadTop" [attr.width]="agingInnerWidth / agingSeries().length" [attr.height]="agingInnerHeight" fill="transparent"
+                      (mouseenter)="agingHover.set(i)" (mouseleave)="agingHover.set(null)" (click)="agingTogglePin(i)" style="cursor: pointer" />
+                    <text [attr.x]="agingXFor(i)" [attr.y]="agingPadTop + agingInnerHeight + 18" text-anchor="middle" font-size="10.5" [attr.font-weight]="agingActive() === i ? 700 : 400" [attr.fill]="agingActive() === i ? 'var(--ink)' : 'var(--ink-mute)'">{{ s.label }}</text>
+                  </g>
+                }
+              </svg>
+              @if (agingHoveredSeries(); as hs) {
+                <div class="line-tip an-tenure-tip" [style.left.%]="(agingXFor(agingActive()!) / agingDims.W) * 100"
+                  [style.top.%]="((hs.onboarded.length >= hs.deboarded.length ? agingYFor(hs.onboarded.length) : agingYFor(hs.deboarded.length)) / agingDims.H) * 100"
+                  [style.pointer-events]="agingPinned() !== null ? 'auto' : 'none'">
+                  <div class="t-month">
+                    {{ hs.label }} {{ hs.year }}
+                    @if (agingPinned() !== null) {
+                      <button class="an-tenure-tip-close" (click)="agingPinned.set(null)" aria-label="Close">✕</button>
+                    }
+                  </div>
+                  <div class="t-row"><span class="sw" style="background: var(--crit)"></span>Onboarded<b>{{ hs.onboarded.length }}</b></div>
+                  <div class="an-tenure-tip-names">
+                    @if (hs.onboarded.length === 0) {
+                      <span class="an-tenure-tip-empty">None</span>
+                    } @else {
+                      @for (p of hs.onboarded; track p.id) {
+                        <button class="an-tenure-tip-row" (click)="navToAgingPartner(p.id)">{{ p.legalName }}</button>
+                      }
+                    }
+                  </div>
+                  <div class="t-row"><span class="sw" style="background: var(--warn)"></span>Deboarded<b>{{ hs.deboarded.length }}</b></div>
+                  <div class="an-tenure-tip-names">
+                    @if (hs.deboarded.length === 0) {
+                      <span class="an-tenure-tip-empty">None</span>
+                    } @else {
+                      @for (p of hs.deboarded; track p.id) {
+                        <button class="an-tenure-tip-row" (click)="navToAgingPartner(p.id)">{{ p.legalName }}</button>
+                      }
+                    }
+                  </div>
+                </div>
+              }
+            </div>
+            <button class="an-viewall" style="margin-top: 0.6rem" (click)="navigatePartners()">View all distributors →</button>
+          </div>
+        </app-card>
+        <app-card>
+          <!-- AI Insight -->
+          <div class="an-ai">
+            <div class="an-ai-head">
+              <span class="an-ai-tag"><app-icon name="spark" [size]="13" /> AI Insight</span>
+              <span class="an-ai-live"><span class="an-ai-dot"></span> Live</span>
+            </div>
+
+            <div class="an-ai-stats">
+              @for (s of aiStats(); track s.label) {
+                <div class="an-ai-stat" [class]="'tone-' + s.tone">
+                  <div class="an-ai-stat-label">{{ s.label }}</div>
+                  <div class="an-ai-stat-val">{{ s.value }}</div>
+                  @if (s.delta) { <div class="an-ai-stat-delta">{{ s.delta }}</div> }
+                </div>
+              }
+            </div>
+
+            <div class="an-ai-rec">
+              <div class="an-ai-rec-body">
+                <div class="an-ai-rec-headline">{{ aiRec().headline }}</div>
+                <div class="an-ai-rec-impact"><app-icon name="target" [size]="12" /> {{ aiRec().impact }}</div>
+              </div>
+              <app-button size="sm" (click)="navAiRec()">{{ aiRec().action }} →</app-button>
+            </div>
+
+            @if (aiBullets().length > 0) {
+              <div class="an-ai-other">
+                <div class="an-ai-other-h">Other insights</div>
+                @for (b of aiBullets(); track $index) {
+                  <button type="button" class="an-ai-bullet" [class]="'tone-' + b.tone + (b.rows?.length ? ' clickable' : '')"
+                    [disabled]="!b.rows?.length" (click)="aiDetail.set({ title: b.text, rows: b.rows! })">
+                    <span class="an-ai-bullet-ic"><app-icon [name]="b.icon" [size]="13" /></span>
+                    <span class="an-ai-bullet-text">{{ b.text }}</span>
+                    @if (b.rows?.length) { <app-icon name="chevronRight" [size]="14" /> }
+                  </button>
+                }
+              </div>
+            }
+
+            <app-modal [open]="!!aiDetail()" [title]="aiDetail()?.title ?? ''" (closed)="aiDetail.set(null)">
+              <div class="pt-breakdown">
+                @if ((aiDetail()?.rows ?? []).length === 0) {
+                  <p class="muted-note">Nothing to show here right now.</p>
+                } @else {
+                  @for (r of aiDetail()!.rows; track $index) {
+                    <button class="pt-breakdown-row" (click)="r.onClick(); aiDetail.set(null)">
+                      <span class="pt-breakdown-main">
+                        <span class="n">{{ r.name }}</span>
+                        <span class="t">{{ r.sub }}</span>
+                      </span>
+                      <span class="pt-breakdown-metric"><app-icon name="chevronRight" [size]="14" /></span>
+                    </button>
+                  }
+                }
+              </div>
+            </app-modal>
+          </div>
+        </app-card>
+      </div>
+
+      <div class="an-row2">
+        <app-card>
+          <!-- Advanced Chart -->
+          <div class="an-adv">
+            <div class="an-adv-head">
+              <div class="an-adv-title">
+                <span class="an-adv-ic"><app-icon name="analytics" [size]="15" /></span>
+                <div>
+                  <div class="an-adv-name">Book Turnover · Monthly · ₹L</div>
+                  <div class="an-adv-quote">
+                    <span class="v">{{ advLatest() }}</span>
+                    <span [class]="advUp() ? 'chg up' : 'chg down'">{{ advUp() ? '+' : '' }}{{ advChange() }} ({{ advUp() ? '+' : '' }}{{ advChangePct() }}%)</span>
+                    <span class="an-adv-live"><span class="an-ai-dot"></span> Live</span>
+                  </div>
+                </div>
+              </div>
+              <div class="an-adv-tabs">
+                @for (r of CHART_RANGES; track r) {
+                  <button class="an-adv-tab" [class.on]="advRange() === r" (click)="advRange.set(r)">{{ r }}</button>
+                }
+              </div>
+            </div>
+            <div class="an2-svgbox" style="max-width: 100%">
+              <svg [attr.viewBox]="'0 0 ' + advDims.W + ' ' + advDims.H" class="an-adv-svg" role="img" aria-label="Book turnover advanced chart with volume">
+                <defs>
+                  <linearGradient [attr.id]="advGradId" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stop-color="var(--ai)" stop-opacity="0.28" />
+                    <stop offset="100%" stop-color="var(--ai)" stop-opacity="0" />
+                  </linearGradient>
+                </defs>
+                @for (t of advTicks(); track $index) {
+                  <g>
+                    <line [attr.x1]="advXFor(0)" [attr.x2]="advXFor(advLen() - 1)" [attr.y1]="advYP(t)" [attr.y2]="advYP(t)" stroke="var(--border)" stroke-width="1" />
+                    <text [attr.x]="advXFor(0) - 8" [attr.y]="advYP(t) + 3" text-anchor="end" font-size="10" fill="var(--ink-mute)">{{ t.toFixed(0) }}</text>
+                  </g>
+                }
+                <path [attr.d]="advAreaPath()" [attr.fill]="'url(#' + advGradId + ')'"></path>
+                <polyline [attr.points]="advLinePts()" fill="none" stroke="var(--ai)" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round" />
+                @for (v of advVolume(); track $index; let i = $index) {
+                  <rect [attr.x]="advBarX(i)" [attr.y]="advYV(v)" [attr.width]="advBarWidth()" [attr.height]="advVolBottom - advYV(v)" rx="1.5"
+                    [attr.fill]="advVolUp(i) ? 'var(--good)' : 'var(--crit)'" [attr.opacity]="advHover() === null || advHover() === i ? 0.55 : 0.25" />
+                }
+                <text [attr.x]="advXFor(0) - 8" [attr.y]="advVolTop + 4" text-anchor="end" font-size="8.5" fill="var(--ink-mute)">Vol</text>
+                @if (advHover() !== null) {
+                  <line [attr.x1]="advXFor(advHover()!)" [attr.x2]="advXFor(advHover()!)" [attr.y1]="advPriceTop" [attr.y2]="advVolBottom" stroke="var(--border-strong)" stroke-width="1" stroke-dasharray="3 3" />
+                }
+                @for (v of advTurnover(); track $index; let i = $index) {
+                  <g>
+                    <circle [attr.cx]="advXFor(i)" [attr.cy]="advYP(v)" [attr.r]="advHover() === i ? 4.5 : 0" fill="var(--surface)" stroke="var(--ai)" stroke-width="2" />
+                    <rect [attr.x]="advXFor(i) - (advXFor(1) - advXFor(0)) / 2" [attr.y]="advPriceTop" [attr.width]="advXFor(1) - advXFor(0)" [attr.height]="advVolBottom - advPriceTop" fill="transparent"
+                      (mouseenter)="advHover.set(i)" (mouseleave)="advHover.set(null)" style="cursor: crosshair" />
+                    <text [attr.x]="advXFor(i)" [attr.y]="advVolBottom + 16" text-anchor="middle" font-size="10.5" [attr.font-weight]="advHover() === i ? 700 : 400" [attr.fill]="advHover() === i ? 'var(--ink)' : 'var(--ink-mute)'">{{ advMonths()[i] }}</text>
+                  </g>
+                }
+              </svg>
+              @if (advHover() !== null) {
+                <div class="line-tip" [style.left.%]="(advXFor(advHover()!) / advDims.W) * 100" [style.top.%]="(advYP(advTurnover()[advHover()!]) / advDims.H) * 100">
+                  <div class="t-month">{{ advMonths()[advHover()!] }} 2026</div>
+                  <div class="t-row"><span class="sw" style="background: var(--ai)"></span>Turnover<b>₹{{ advTurnover()[advHover()!] }}L</b></div>
+                  <div class="t-row">Change<b [style.color]="advChangeAt(advHover()!) === null ? 'var(--ink)' : (advChangeAt(advHover()!)! < 0 ? 'var(--crit-text)' : 'var(--good-text)')">{{ advChangeAt(advHover()!) === null ? '—' : (advChangeAt(advHover()!)! >= 0 ? '+' : '') + advChangeAt(advHover()!) + 'L' }}</b></div>
+                  <div class="t-row"><span class="sw" style="background: var(--good)"></span>Applications<b>{{ advVolume()[advHover()!] }}</b></div>
+                </div>
+              }
+            </div>
+          </div>
+        </app-card>
+        <app-card>
+          <!-- Top Movers -->
+          <div class="an2-chart">
+            <div class="an2-chart-head">
+              <span class="card-title" style="margin: 0">Top Movers <span class="an-mv-sub">vs last month</span></span>
+              <div class="an-mv-tabs">
+                @for (l of MOVER_LENSES; track l.key) {
+                  <button class="an-mv-tab" [class.on]="moverLens() === l.key" (click)="moverLens.set(l.key)">{{ l.label }}</button>
+                }
+              </div>
+            </div>
+            <div class="an-mv-group">
+              <div class="an-mv-title">Top gainers</div>
+              @if (moverGainers().length === 0) {
+                <p class="muted-note" style="margin: 0.2rem 0">None this month.</p>
+              } @else {
+                @for (r of moverGainers(); track r.d.id) {
+                  <button class="an-mv-row" (click)="navToMover(r)">
+                    <span class="an-mv-name">{{ r.d.name }}</span>
+                    <span class="an-mv-track"><i class="up" [style.width.%]="r.barPct"></i></span>
+                    <span class="an-mv-chg up">{{ r.change > 0 ? '+' : '' }}{{ r.change }}{{ r.unit }}</span>
+                    <span class="an-mv-cur">{{ moverLens() === 'turnover' ? '₹' + r.current + 'L' : r.current + '%' }}</span>
+                  </button>
+                }
+              }
+            </div>
+            <div class="an-mv-group">
+              <div class="an-mv-title">Top decliners</div>
+              @if (moverDecliners().length === 0) {
+                <p class="muted-note" style="margin: 0.2rem 0">None this month.</p>
+              } @else {
+                @for (r of moverDecliners(); track r.d.id) {
+                  <button class="an-mv-row" (click)="navToMover(r)">
+                    <span class="an-mv-name">{{ r.d.name }}</span>
+                    <span class="an-mv-track"><i class="down" [style.width.%]="r.barPct"></i></span>
+                    <span class="an-mv-chg down">{{ r.change > 0 ? '+' : '' }}{{ r.change }}{{ r.unit }}</span>
+                    <span class="an-mv-cur">{{ moverLens() === 'turnover' ? '₹' + r.current + 'L' : r.current + '%' }}</span>
+                  </button>
+                }
+              }
+            </div>
+          </div>
+        </app-card>
+      </div>
+
+      <div class="an2-hero">
+        <app-card>
+          <!-- Coverage by Region -->
+          <div class="an2-chart">
+            <div class="an2-chart-head">
+              <span class="card-title" style="margin: 0">Coverage by Region</span>
+              <span style="display: flex; align-items: center; gap: 0.5rem">
+                <span title="Average GTM coverage across all tracked states in each macro-region." style="color: var(--ink-mute); cursor: help">
+                  <app-icon name="help" [size]="13" />
+                </span>
+                <button class="an-viewall" (click)="navToGtm()">View map →</button>
+              </span>
+            </div>
+            <div class="an2-region-grid">
+              <div class="an2-region-map">
+                <svg [attr.viewBox]="indiaMap.viewBox" role="img" aria-label="Coverage by region">
+                  @for (loc of indiaMap.locations; track loc.id) {
+                    <path [attr.d]="loc.path"
+                      [attr.fill]="coveragePctByCode(svgIdToCode[loc.id]) === null ? 'var(--surface-3)' : REGION_COLOR[REGION_TIER(coveragePctByCode(svgIdToCode[loc.id])!)]"
+                      stroke="var(--surface)" stroke-width="0.8"
+                      [style.opacity]="coverageHoverRegion() && regionForCode(svgIdToCode[loc.id]) !== coverageHoverRegion() ? 0.35 : 1"
+                      [style.cursor]="regionForCode(svgIdToCode[loc.id]) ? 'pointer' : 'default'" style="transition: opacity 0.12s"
+                      (click)="regionForCode(svgIdToCode[loc.id]) && navToGtmRegion(regionForCode(svgIdToCode[loc.id])!)">
+                      <title>{{ loc.name }}{{ coveragePctByCode(svgIdToCode[loc.id]) !== null ? ' — ' + regionForCode(svgIdToCode[loc.id]) + ', ' + coveragePctByCode(svgIdToCode[loc.id]) + '% coverage' : '' }}</title>
+                    </path>
+                  }
+                </svg>
+              </div>
+              <div class="an2-region-list">
+                @for (r of coverageRegions(); track r.name) {
+                  <button type="button" class="an2-region-row an2-region-row-btn"
+                    (mouseenter)="coverageHoverRegion.set(r.name)" (mouseleave)="coverageHoverRegion.set(null)" (click)="navToGtmRegion(r.name)">
+                    <span class="n">{{ r.name }}</span>
+                    <span class="pct" [style.color]="REGION_COLOR[REGION_TIER(r.pct)]">{{ r.pct }}%</span>
+                    <span class="bar"><i [style.width.%]="r.pct > 100 ? 100 : r.pct" [style.background]="REGION_COLOR[REGION_TIER(r.pct)]"></i></span>
+                  </button>
+                }
+              </div>
+            </div>
+            <div class="an2-region-legend">
+              <span><span class="sw" [style.background]="REGION_COLOR['good']"></span> ≥ 70%</span>
+              <span><span class="sw" [style.background]="REGION_COLOR['warn']"></span> 40% – 69%</span>
+              <span><span class="sw" [style.background]="REGION_COLOR['crit']"></span> &lt; 40%</span>
+            </div>
+          </div>
+        </app-card>
+        <app-card>
+          <!-- Performance Heatmap -->
+          <div class="an-heat">
+            <div class="an2-chart-head">
+              <span class="card-title" style="margin: 0">Performance Heatmap</span>
+              <div class="an-mv-tabs">
+                @for (d of HEAT_DIMS; track d.key) {
+                  <button class="an-mv-tab" [class.on]="heatDim() === d.key" (click)="heatDim.set(d.key)">{{ d.label }}</button>
+                }
+              </div>
+            </div>
+            @if (heatGroups().length === 0) {
+              <p class="muted-note">No distributors match the current filters.</p>
+            } @else {
+              <div class="an-heat-wrap">
+                <table class="an-heat-table">
+                  <thead>
+                    <tr>
+                      <th class="an-heat-rowh">{{ heatHead() }}</th>
+                      @for (m of HEAT_METRICS; track m.key) { <th>{{ m.label }}</th> }
+                      <th>DBs</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @for (g of heatGroups(); track g.label) {
+                      <tr class="an-heat-row" (click)="g.nav()" [attr.title]="'Open ' + g.label">
+                        <td class="an-heat-rowh"><span class="an-heat-rowh-in">{{ g.label }}<app-icon name="chevronRight" [size]="13" /></span></td>
+                        @for (m of HEAT_METRICS; track m.key) {
+                          @if (heatValue(g, m) === null) {
+                            <td class="an-heat-cell"><span class="an-heat-na">—</span></td>
+                          } @else {
+                            <td class="an-heat-cell"><span [style.background]="heatCell(heatValue(g, m)!, m).bg" [style.color]="heatCell(heatValue(g, m)!, m).fg">{{ m.fmt(heatValue(g, m)!) }}</span></td>
+                          }
+                        }
+                        <td class="an-heat-count">{{ g.count }}</td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              </div>
+            }
+            <div class="an-heat-legend">
+              <span><i style="background: color-mix(in srgb, var(--good) 18%, transparent)"></i> Strong</span>
+              <span><i style="background: color-mix(in srgb, var(--warn) 18%, transparent)"></i> Watch</span>
+              <span><i style="background: color-mix(in srgb, var(--crit) 18%, transparent)"></i> Weak</span>
+              <span class="an-heat-legend-note">Cells shaded by score · averaged across DBs in view</span>
+            </div>
+          </div>
+        </app-card>
+      </div>
+
+      <app-card>
+        <!-- Activity Heatmap -->
+        <div class="an-gh">
+          <div class="an2-chart-head">
+            <span class="card-title" style="margin: 0">Onboarding Activity <span class="an-gh-sub">last 12 months</span></span>
+            <span class="an-gh-total">{{ activityHeatmap().total }} distributors onboarded</span>
+          </div>
+          <div class="an-gh-scroll">
+            <div class="an-gh-months">
+              @for (m of activityHeatmap().monthLabels; track $index) { <span>{{ m }}</span> }
+            </div>
+            <div class="an-gh-body">
+              <div class="an-gh-wd">
+                @for (d of GH_WD; track $index) { <span>{{ d }}</span> }
+              </div>
+              <div class="an-gh-grid">
+                @for (w of activityHeatmap().weeks; track $index) {
+                  <div class="an-gh-col">
+                    @for (cell of w; track $index) {
+                      @if (cell.count < 0) {
+                        <span class="an-gh-cell empty"></span>
+                      } @else {
+                        <span class="an-gh-cell" [class]="'l' + ghLevel(cell.count)" [attr.title]="cell.count + ' onboarded · ' + ghDate(cell.date)"></span>
+                      }
+                    }
+                  </div>
+                }
+              </div>
+            </div>
+          </div>
+          <div class="an-gh-legend">
+            <span>Less</span>
+            @for (l of [0, 1, 2, 3, 4]; track l) { <i [class]="'an-gh-cell l' + l"></i> }
+            <span>More</span>
+          </div>
+        </div>
+      </app-card>
+
+      <div class="an-row2">
+        <div class="an2-stack">
+          <app-card title="Where distributors are lacking">
+            <div class="hbars">
+              @for (d of gapFreqRows(); track d.label) {
+                <div class="hbar">
+                  <div class="top">
+                    <span class="nm">{{ d.label }}</span>
+                    <span class="vv">{{ d.value }}{{ d.sub ? ' · ' + d.sub : '' }}</span>
+                  </div>
+                  <div class="track"><div class="fill alt" [style.width.%]="(d.value / gapFreqRows()[0].value) * 100"></div></div>
+                </div>
+              }
+            </div>
+          </app-card>
+          <app-card>
+            <!-- Key Alerts -->
+            <div>
+              <div class="an-card-head">
+                <span class="card-title" style="margin: 0">Key Alerts</span>
+                @if (keyAlerts().length > 3) {
+                  <button class="an-viewall" (click)="alertsExpanded.set(!alertsExpanded())">
+                    {{ alertsExpanded() ? '← Show less' : 'View all alerts →' }}
+                  </button>
+                }
+              </div>
+              @if (keyAlerts().length === 0) {
+                <p class="muted-note">No alerts right now — everything is tracking to plan. 🎉</p>
+              } @else {
+                <div class="an-alerts">
+                  @for (a of keyAlertsVisible(); track $index) {
+                    <button class="an-alert-row" (click)="a.onClick()">
+                      <span class="an-alert-ic" [class]="'tone-' + a.tone"><app-icon [name]="a.icon" [size]="16" /></span>
+                      <span class="an-alert-body">
+                        <span class="an-alert-label">{{ a.label }}</span>
+                        <span class="an-alert-sub">{{ a.sub }}</span>
+                      </span>
+                      <app-pill [tone]="ALERT_TAG_TONE[a.tag]">{{ a.tag }}</app-pill>
+                      <app-icon name="chevronRight" [size]="14" />
+                    </button>
+                  }
+                </div>
+              }
+            </div>
+          </app-card>
+        </div>
+        <app-card>
+          <div class="an-card-head">
+            <span class="card-title" style="margin: 0">Which DB is lacking</span>
+            <button class="an-viewall" (click)="navigatePartners()">View all →</button>
+          </div>
+          <!-- Needs Attention -->
+          @if (needsAttentionRows().length === 0) {
+            <p class="muted-note">Every distributor is meeting plan. 🎉</p>
+          } @else {
+            <div class="needs-list">
+              @for (d of needsAttentionRows(); track d.id) {
+                <div class="needs-item">
+                  <div class="needs-main">
+                    <div class="needs-name">{{ d.name }}<app-pill [tone]="STATUS_META[dbStatus(d)].tone" [dot]="true">{{ STATUS_META[dbStatus(d)].label }}</app-pill></div>
+                    <div class="needs-meta">{{ d.town }} · {{ d.category }}</div>
+                    <div class="gap-chips">
+                      @for (g of dbGaps(d); track g) { <span class="gap-chip">{{ g }}</span> }
+                    </div>
+                  </div>
+                </div>
+              }
+            </div>
+          }
+        </app-card>
+      </div>
+
+      <app-card>
+        <!-- Fill Rate vs Coverage -->
+        <div class="an2-chart">
+          <div class="an2-chart-head"><span class="card-title" style="margin: 0">Fill Rate vs Coverage</span></div>
+          <div class="chart-legend" style="margin-bottom: 0.5rem">
+            @for (s of DB_STATUSES; track s) {
+              <span class="lg"><span class="sw" [style.background]="STATUS_DOT[s]" style="border-radius: 50%"></span> {{ STATUS_LABEL[s] }}</span>
+            }
+          </div>
+          <div class="an2-svgbox">
+            <svg [attr.viewBox]="'0 0 ' + fillDims.W + ' ' + fillDims.H" class="an2-svg" role="img" aria-label="Fill rate vs coverage by distributor">
+              @for (t of fillYTicks(); track $index) {
+                <g>
+                  <line [attr.x1]="fillXFor(75)" [attr.x2]="fillXFor(100)" [attr.y1]="fillYFor(t)" [attr.y2]="fillYFor(t)" stroke="var(--border)" stroke-width="1" />
+                  <text [attr.x]="fillXFor(75) - 8" [attr.y]="fillYFor(t) + 4" text-anchor="end" font-size="10" fill="var(--ink-mute)">{{ t }}</text>
+                </g>
+              }
+              @for (t of fillXTicks; track t) {
+                <text [attr.x]="fillXFor(t)" [attr.y]="fillPadTop + fillInnerHeight + 18" text-anchor="middle" font-size="10" fill="var(--ink-mute)">{{ t }}%</text>
+              }
+              <text [attr.x]="(fillXFor(75) + fillXFor(100)) / 2" [attr.y]="fillDims.H - 2" text-anchor="middle" font-size="10" fill="var(--ink-mute)">Fill rate (%)</text>
+              @for (d of dbs(); track d.id) {
+                <g (mouseenter)="fillHover.set(d.id)" (mouseleave)="fillHover.set(null)" style="cursor: pointer">
+                  <circle [attr.cx]="fillXFor(d.fillRate)" [attr.cy]="fillYFor(dbCoverage(d))" [attr.r]="fillRFor(d.outlets)" [attr.fill]="STATUS_DOT[dbStatus(d)]"
+                    [attr.fill-opacity]="fillHover() !== null && fillHover() !== d.id ? 0.25 : 0.78" stroke="var(--surface)" stroke-width="2" />
+                  @if (dbStatus(d) === 'at_risk') {
+                    <text [attr.x]="fillXFor(d.fillRate)" [attr.y]="fillYFor(dbCoverage(d)) - fillRFor(d.outlets) - 5" text-anchor="middle" font-size="9" font-weight="700"
+                      fill="var(--crit-text)" [attr.opacity]="fillHover() !== null && fillHover() !== d.id ? 0.3 : 1">{{ d.name }}</text>
+                  }
+                </g>
+              }
+            </svg>
+            @for (d of dbs(); track d.id) {
+              @if (fillHover() === d.id) {
+                <div class="line-tip" [style.left.%]="(fillXFor(d.fillRate) / fillDims.W) * 100" [style.top.%]="(fillYFor(dbCoverage(d)) / fillDims.H) * 100">
+                  <div class="t-month">{{ d.name }}</div>
+                  <div class="t-row"><span class="sw" [style.background]="STATUS_DOT[dbStatus(d)]" style="border-radius: 50%"></span>{{ STATUS_LABEL[dbStatus(d)] }}</div>
+                  <div class="t-row">Fill rate<b>{{ d.fillRate }}%</b></div>
+                  <div class="t-row">Coverage<b>{{ dbCoverage(d) }}%</b></div>
+                  <div class="t-row">Outlets<b>{{ d.outlets.toLocaleString() }}</b></div>
+                </div>
+              }
+            }
+          </div>
+        </div>
+      </app-card>
+    </div>
+  } @else if (tab() === 'detail') {
+    <div class="an2-stack">
+      <div class="an-detail-intro">
+        <span class="an-detail-intro-ic"><app-icon name="analytics" [size]="16" /></span>
+        <div>
+          <h3>Distributor Detail</h3>
+          <p>How the current book is tracking against its monthly turnover target, plus a breakdown of open distributor grievances by region and category.</p>
+        </div>
+      </div>
+
+      <div class="an2-kpis" style="grid-template-columns: repeat(4, 1fr)">
+        <button type="button" class="an2-kpi an2-kpi-btn" disabled>
+          <div class="an2-kpi-top">
+            <span class="an2-kpi-label">Distributors in View</span>
+            <span class="an2-kpi-ic tone-ai"><app-icon name="partners" [size]="14" /></span>
+          </div>
+          <div class="an2-kpi-val">{{ dbs().length }}</div>
+          <div class="an2-kpi-sub">Matching the current filters</div>
+        </button>
+        <button type="button" class="an2-kpi an2-kpi-btn" disabled>
+          <div class="an2-kpi-top">
+            <span class="an2-kpi-label">Avg Target Attainment</span>
+            <span class="an2-kpi-ic" [class]="'tone-' + (detailAvgAttain() >= 100 ? 'good' : 'warn')"><app-icon name="target" [size]="14" /></span>
+          </div>
+          <div class="an2-kpi-val">{{ detailAvgAttain() }}%</div>
+          <div class="an2-kpi-sub">₹{{ detailLatestTurnover() }}L of ₹{{ targetTotal() }}L target</div>
+        </button>
+        <button type="button" class="an2-kpi an2-kpi-btn" disabled>
+          <div class="an2-kpi-top">
+            <span class="an2-kpi-label">Overdue Grievances</span>
+            <span class="an2-kpi-ic" [class]="'tone-' + (overdueGrievancesCount() > 0 ? 'crit' : 'good')"><app-icon name="flag" [size]="14" /></span>
+          </div>
+          <div class="an2-kpi-val">{{ overdueGrievancesCount() }}</div>
+          <div class="an2-kpi-sub">Open more than the SLA window</div>
+        </button>
+        <button type="button" class="an2-kpi an2-kpi-btn" disabled>
+          <div class="an2-kpi-top">
+            <span class="an2-kpi-label">Open Grievances</span>
+            <span class="an2-kpi-ic" [class]="'tone-' + (openGrievancesCount() > 0 ? 'warn' : 'good')"><app-icon name="alert" [size]="14" /></span>
+          </div>
+          <div class="an2-kpi-val">{{ openGrievancesCount() }}</div>
+          <div class="an2-kpi-sub">Awaiting resolution</div>
+        </button>
+      </div>
+
+      <app-card>
+        <!-- Turnover vs Target -->
+        <div class="an2-chart">
+          <div class="an2-chart-head">
+            <span class="card-title" style="margin: 0">Turnover vs Target Attainment</span>
+          </div>
+          <div class="chart-legend" style="margin-bottom: 0.5rem">
+            <span class="lg"><span class="sw" style="background: var(--chart-1)"></span> Turnover (₹L)</span>
+            <span class="lg"><span class="sw" style="background: none; border-top: 2px dashed var(--ink-mute); width: 12px; height: 0; border-radius: 0"></span> Target (₹L)</span>
+          </div>
+          <div class="an2-svgbox">
+            <svg [attr.viewBox]="'0 0 ' + tvtDims.W + ' ' + tvtDims.H" class="an2-svg" role="img" aria-label="Monthly turnover vs target">
+              @for (t of tvtTicks(); track $index) {
+                <g>
+                  <line [attr.x1]="tvtPadLeft" [attr.x2]="tvtPadLeft + tvtInnerWidth" [attr.y1]="tvtYFor(t)" [attr.y2]="tvtYFor(t)" stroke="var(--border)" stroke-width="1" />
+                  <text [attr.x]="tvtPadLeft - 8" [attr.y]="tvtYFor(t) + 4" text-anchor="end" font-size="10" fill="var(--ink-mute)">{{ t }}</text>
+                </g>
+              }
+              <line [attr.x1]="tvtPadLeft" [attr.x2]="tvtPadLeft + tvtInnerWidth" [attr.y1]="tvtYFor(targetTotal())" [attr.y2]="tvtYFor(targetTotal())"
+                stroke="var(--ink-mute)" stroke-width="1.5" stroke-dasharray="4 4" />
+              <text [attr.x]="tvtPadLeft + tvtInnerWidth" [attr.y]="tvtYFor(targetTotal()) - 5" text-anchor="end" font-size="9.5" font-weight="700" fill="var(--ink-mute)">Target</text>
+
+              @for (v of tvtMonthly(); track $index; let i = $index) {
+                <g (mouseenter)="turnoverHover.set(i)" (mouseleave)="turnoverHover.set(null)" style="cursor: pointer">
+                  <rect [attr.x]="tvtHitX(i)" [attr.y]="tvtPadTop" [attr.width]="tvtHitWidth" [attr.height]="tvtInnerHeight" fill="transparent" />
+                  <path [attr.d]="tvtBarPath(i)" fill="var(--chart-1)" [attr.opacity]="turnoverHover() === null || turnoverHover() === i ? 1 : 0.45" />
+                  <text [attr.x]="tvtXCenter(i)" [attr.y]="tvtYFor(v) - 8" text-anchor="middle" font-size="10.5" font-weight="800"
+                    [attr.fill]="tvtAttainment()[i] >= 100 ? 'var(--good-text)' : 'var(--ink-mute)'">{{ tvtAttainment()[i] }}%</text>
+                  <text [attr.x]="tvtXCenter(i)" [attr.y]="tvtPadTop + tvtInnerHeight + 18" text-anchor="middle" font-size="10.5" fill="var(--ink-mute)">{{ trendMonths[i] }}</text>
+                </g>
+              }
+            </svg>
+            @if (turnoverHover() !== null) {
+              <div class="line-tip" [style.left.%]="(tvtXCenter(turnoverHover()!) / tvtDims.W) * 100" [style.top.%]="(tvtYFor(tvtMonthly()[turnoverHover()!]) / tvtDims.H) * 100">
+                <div class="t-month">{{ trendMonths[turnoverHover()!] }}</div>
+                <div class="t-row"><span class="sw" style="background: var(--chart-1)"></span>Turnover<b>₹{{ tvtMonthly()[turnoverHover()!] }}L</b></div>
+                <div class="t-row"><span class="sw" style="background: var(--ink-mute)"></span>Target<b>₹{{ targetTotal() }}L</b></div>
+                <div class="t-row">Attainment<b>{{ tvtAttainment()[turnoverHover()!] }}%</b></div>
+              </div>
+            }
+          </div>
+        </div>
+      </app-card>
+
+      <app-card>
+        <!-- Compare Distributors -->
+        <div class="an2-chart">
+          <div class="an2-chart-head"><span class="card-title" style="margin: 0">Compare Distributors</span></div>
+          <div class="an-cmp-filters">
+            <select class="mini-select" [ngModel]="cmpFilterCategory()" (ngModelChange)="setCmpFilterCategory($event)">
+              <option value="all">All categories</option>
+              @for (c of cmpCategories(); track c) { <option [value]="c">{{ c }}</option> }
+            </select>
+            <select class="mini-select" [ngModel]="cmpFilterStatus()" (ngModelChange)="setCmpFilterStatus($event)">
+              <option value="all">All statuses</option>
+              <option value="on_track">On track</option>
+              <option value="watch">Watch</option>
+              <option value="at_risk">At risk</option>
+            </select>
+            @if (cmpFiltersActive()) {
+              <button class="btn text sm" style="padding: 0" (click)="resetCmpFilters()">Reset</button>
+            }
+          </div>
+          @if (cmpSorted().length < 2) {
+            <p class="muted-note">Need at least 2 distributors matching these filters to compare.</p>
+          } @else {
+            @if (cmpA(); as a) {
+              @if (cmpB(); as b) {
+                <div class="an-cmp">
+                  <div class="an-cmp-head">
+                    <button type="button" class="an-cmp-side" (click)="navToCmpDb(a)">
+                      <span class="an-cmp-avatar a">{{ initials(a.name) }}</span>
+                      <span class="an-cmp-name">{{ a.name }}</span>
+                      <span class="an-cmp-sub">{{ a.town }} · {{ a.category }}</span>
+                      <app-pill [tone]="STATUS_META[dbStatus(a)].tone">{{ STATUS_META[dbStatus(a)].label }}</app-pill>
+                    </button>
+                    <select class="mini-select an-cmp-swap" [ngModel]="cmpAId()" (ngModelChange)="cmpAId.set($event)">
+                      @for (d of cmpSorted(); track d.id) { <option [value]="d.id" [disabled]="d.id === cmpBId()">{{ d.name }}</option> }
+                    </select>
+                    <span class="an-cmp-vs">VS</span>
+                    <select class="mini-select an-cmp-swap" [ngModel]="cmpBId()" (ngModelChange)="cmpBId.set($event)">
+                      @for (d of cmpSorted(); track d.id) { <option [value]="d.id" [disabled]="d.id === cmpAId()">{{ d.name }}</option> }
+                    </select>
+                    <button type="button" class="an-cmp-side" (click)="navToCmpDb(b)">
+                      <span class="an-cmp-avatar b">{{ initials(b.name) }}</span>
+                      <span class="an-cmp-name">{{ b.name }}</span>
+                      <span class="an-cmp-sub">{{ b.town }} · {{ b.category }}</span>
+                      <app-pill [tone]="STATUS_META[dbStatus(b)].tone">{{ STATUS_META[dbStatus(b)].label }}</app-pill>
+                    </button>
+                  </div>
+
+                  <div class="an-cmp-metrics">
+                    @for (m of COMPARE_METRICS; track m.key) {
+                      @if (cmpMetric(m, a, b); as cm) {
+                        <div class="an-cmp-metric">
+                          <div class="an-cmp-metric-label">{{ m.label }}</div>
+                          <div class="an-cmp-metric-row">
+                            <span class="an-cmp-val left" [class.win]="cm.aWins">{{ cm.va }}{{ m.unit }}</span>
+                            <div class="an-cmp-bars">
+                              <div class="an-cmp-half left"><div class="an-cmp-fill a" [style.width.%]="cm.pctA"></div></div>
+                              <span class="an-cmp-mid" aria-hidden="true"></span>
+                              <div class="an-cmp-half right"><div class="an-cmp-fill b" [style.width.%]="cm.pctB"></div></div>
+                            </div>
+                            <span class="an-cmp-val right" [class.win]="cm.bWins">{{ cm.vb }}{{ m.unit }}</span>
+                          </div>
+                        </div>
+                      }
+                    }
+                  </div>
+                </div>
+              }
+            }
+          }
+        </div>
+      </app-card>
+
+      <app-card>
+        <!-- Grievances Overview -->
+        @if (grvTotal() === 0) {
+          <div class="an2-chart">
+            <div class="an2-chart-head"><span class="card-title" style="margin: 0">Grievances</span></div>
+            <p class="muted-note">No grievances on record. 🎉</p>
+          </div>
+        } @else {
+          <div class="an2-chart">
+            <div class="an2-chart-head">
+              <span class="card-title" style="margin: 0">Grievances</span>
+              <button class="an-viewall" (click)="navigateGrievances()">View all →</button>
+            </div>
+
+            <div class="an-grv-stats">
+              <div class="an-grv-stat"><div class="v">{{ grvTotal() }}</div><div class="k">Total</div></div>
+              <div class="an-grv-stat tone-crit"><div class="v">{{ grvOverdue().length }}</div><div class="k">Overdue</div></div>
+              <div class="an-grv-stat tone-warn"><div class="v">{{ grvOpen().length }}</div><div class="k">Open</div></div>
+              <div class="an-grv-stat tone-good"><div class="v">{{ grvResolved().length }}</div><div class="k">Resolved</div></div>
+            </div>
+
+            <div class="an-row2" style="margin-top: 1rem">
+              <div>
+                <div class="mono-label" style="margin-bottom: 0.5rem">OPEN BY REGION</div>
+                @if (grvRegionData().length === 0) {
+                  <p class="muted-note">Nothing open.</p>
+                } @else {
+                  <div class="hbars">
+                    @for (d of grvRegionData(); track d.label) {
+                      <div class="hbar">
+                        <div class="top"><span class="nm">{{ d.label }}</span><span class="vv">{{ d.value }}</span></div>
+                        <div class="track"><div class="fill" [style.width.%]="(d.value / grvRegionData()[0].value) * 100"></div></div>
+                      </div>
+                    }
+                  </div>
+                }
+              </div>
+              <div>
+                <div class="mono-label" style="margin-bottom: 0.5rem">OPEN BY CATEGORY</div>
+                @if (grvCategoryData().length === 0) {
+                  <p class="muted-note">Nothing open.</p>
+                } @else {
+                  <div class="hbars">
+                    @for (d of grvCategoryData(); track d.label) {
+                      <div class="hbar">
+                        <div class="top"><span class="nm">{{ d.label }}</span><span class="vv">{{ d.value }}</span></div>
+                        <div class="track"><div class="fill alt" [style.width.%]="(d.value / grvCategoryData()[0].value) * 100"></div></div>
+                      </div>
+                    }
+                  </div>
+                }
+              </div>
+            </div>
+
+            <div class="mono-label" style="margin: 1.1rem 0 0.5rem">MOST URGENT</div>
+            <div class="an-alerts">
+              @for (g of grvUrgent(); track g.id) {
+                <button class="an-alert-row" (click)="navToGrievance(g.id)">
+                  <span class="an-alert-ic" [class]="'tone-' + PRIORITY_TONE[g.priority]"><app-icon [name]="g.isOverdue ? 'alert' : 'clock'" [size]="16" /></span>
+                  <span class="an-alert-body">
+                    <span class="an-alert-label">{{ g.distributor }} — {{ g.subject }}</span>
+                    <span class="an-alert-sub">{{ g.category }} · {{ g.town }} · {{ g.ageDays }}d old{{ g.isOverdue ? ' · Overdue' : '' }}</span>
+                  </span>
+                  <app-pill [tone]="PRIORITY_TONE[g.priority]">{{ g.priority }}</app-pill>
+                  <app-icon name="chevronRight" [size]="14" />
+                </button>
+              }
+            </div>
+          </div>
+        }
+      </app-card>
+    </div>
+  } @else {
+    <div class="an2-stack">
+      <div class="an-eff-head">
+        <span class="an-eff-head-ic"><app-icon name="target" [size]="16" /></span>
+        <div class="an-eff-head-text">
+          <h3>Pipeline Scale &amp; Funnel Velocity</h3>
+          <p>How efficiently the team moves a prospective partner from a mapped lead to a fully registered, live entity.</p>
+        </div>
+      </div>
+      <div class="an2-kpis" style="grid-template-columns: repeat(3, 1fr)">
+        <button type="button" class="an2-kpi an2-kpi-btn" disabled>
+          <div class="an2-kpi-top">
+            <span class="an2-kpi-label">Lead-to-Onboard Conversion</span>
+            <span class="an2-kpi-ic tone-ai"><app-icon name="target" [size]="14" /></span>
+          </div>
+          <div class="an2-kpi-val">{{ LEAD_TO_ONBOARD_CONVERSION_PCT }}%</div>
+          <div class="an2-kpi-sub">Mapped leads that reach Registered/Live</div>
+        </button>
+        <button type="button" class="an2-kpi an2-kpi-btn" disabled>
+          <div class="an2-kpi-top">
+            <span class="an2-kpi-label">Avg Onboarding TAT</span>
+            <span class="an2-kpi-ic" [class]="'tone-' + (AVG_TAT_HOURS <= TAT_TARGET_HOURS.max ? 'good' : 'warn')"><app-icon name="clock" [size]="14" /></span>
+          </div>
+          <div class="an2-kpi-val">{{ AVG_TAT_HOURS }}h</div>
+          <div class="an2-kpi-sub">Target {{ TAT_TARGET_HOURS.min }}-{{ TAT_TARGET_HOURS.max }}h</div>
+          <div class="an2-kpi-spark"><app-sparkline [data]="TAT_TREND_HOURS" [color]="sparkColor(AVG_TAT_HOURS <= TAT_TARGET_HOURS.max ? 'good' : 'warn')" [responsive]="true" [height]="28"></app-sparkline></div>
+        </button>
+        <button type="button" class="an2-kpi an2-kpi-btn" disabled>
+          <div class="an2-kpi-top">
+            <span class="an2-kpi-label">App Download → Registration</span>
+            <span class="an2-kpi-ic tone-blue"><app-icon name="partners" [size]="14" /></span>
+          </div>
+          <div class="an2-kpi-val">{{ APP_DOWNLOAD_TO_REGISTRATION_PCT }}%</div>
+          <div class="an2-kpi-sub">Downloaded the app and completed registration</div>
+        </button>
+      </div>
+      <app-card title="Onboarding Funnel">
+        <div class="an-funnel">
+          @for (r of funnelRows(); track r.stage) {
+            <div class="an-funnel-row">
+              <div class="an-funnel-label">
+                <span class="nm">{{ r.stage }}</span>
+                <span class="vv">{{ r.count.toLocaleString() }}@if (r.dropFromPrev !== null) {<span class="drop"> · -{{ r.dropFromPrev }}%</span>}</span>
+              </div>
+              <div class="an-funnel-track"><div class="an-funnel-fill" [style.width.%]="r.pct"></div></div>
+            </div>
+          }
+        </div>
+      </app-card>
+
+      <div class="an-eff-head">
+        <span class="an-eff-head-ic"><app-icon name="shield" [size]="16" /></span>
+        <div class="an-eff-head-text">
+          <h3>Document Compliance &amp; KYC</h3>
+          <p>The onboarding team as gatekeeper — catching fraudulent or unviable entities before they reach the platform.</p>
+        </div>
+      </div>
+      <div class="an2-kpis" style="grid-template-columns: repeat(3, 1fr)">
+        <button type="button" class="an2-kpi an2-kpi-btn" disabled>
+          <div class="an2-kpi-top">
+            <span class="an2-kpi-label">First-Time-Right Rate</span>
+            <span class="an2-kpi-ic tone-good"><app-icon name="check" [size]="14" /></span>
+          </div>
+          <div class="an2-kpi-val">{{ FTR_RATE_PCT }}%</div>
+          <div class="an2-kpi-sub">Applications passing verification on the first attempt</div>
+          <div class="an2-kpi-spark"><app-sparkline [data]="FTR_TREND_PCT" [color]="sparkColor('good')" [responsive]="true" [height]="28"></app-sparkline></div>
+        </button>
+        <button type="button" class="an2-kpi an2-kpi-btn" disabled>
+          <div class="an2-kpi-top">
+            <span class="an2-kpi-label">KYC Rejection Rate</span>
+            <span class="an2-kpi-ic tone-crit"><app-icon name="alert" [size]="14" /></span>
+          </div>
+          <div class="an2-kpi-val">{{ KYC_REJECTION_RATE_PCT }}%</div>
+          <div class="an2-kpi-sub">Mismatched or invalid documents</div>
+        </button>
+        <button type="button" class="an2-kpi an2-kpi-btn" disabled>
+          <div class="an2-kpi-top">
+            <span class="an2-kpi-label">Credit Eligibility Pass Rate</span>
+            <span class="an2-kpi-ic tone-ai"><app-icon name="shield" [size]="14" /></span>
+          </div>
+          <div class="an2-kpi-val">{{ CREDIT_ELIGIBILITY_PASS_PCT }}%</div>
+          <div class="an2-kpi-sub">Clear internal credit/bank verification</div>
+        </button>
+      </div>
+      <app-card title="KYC Rejection Reasons">
+        <div class="hbars">
+          @for (d of KYC_REJECTION_REASONS; track d.label) {
+            <div class="hbar">
+              <div class="top">
+                <span class="nm">{{ d.label }}</span>
+                <span class="vv">{{ d.value }}{{ d.sub ? ' · ' + d.sub : '' }}</span>
+              </div>
+              <div class="track"><div class="fill alt" [style.width.%]="(d.value / 10) * 100"></div></div>
+            </div>
+          }
+        </div>
+      </app-card>
+
+      <div class="an-eff-head">
+        <span class="an-eff-head-ic"><app-icon name="check" [size]="16" /></span>
+        <div class="an-eff-head-text">
+          <h3>Early Activation &amp; First Time Buy (FTB)</h3>
+          <p>An onboarded partner is a vanity metric until they place their first order — this is where onboarding actually pays off.</p>
+        </div>
+      </div>
+      <div class="an2-kpis" style="grid-template-columns: repeat(3, 1fr)">
+        <button type="button" class="an2-kpi an2-kpi-btn" disabled>
+          <div class="an2-kpi-top">
+            <span class="an2-kpi-label">FTB Rate (7-14 days)</span>
+            <span class="an2-kpi-ic tone-good"><app-icon name="target" [size]="14" /></span>
+          </div>
+          <div class="an2-kpi-val">{{ FTB_RATE_PCT }}%</div>
+          <div class="an2-kpi-sub">Newly registered partners placing a first order</div>
+          <div class="an2-kpi-spark"><app-sparkline [data]="FTB_TREND_PCT" [color]="sparkColor('good')" [responsive]="true" [height]="28"></app-sparkline></div>
+        </button>
+        <button type="button" class="an2-kpi an2-kpi-btn" disabled>
+          <div class="an2-kpi-top">
+            <span class="an2-kpi-label">Avg FTL Ticket Size</span>
+            <span class="an2-kpi-ic tone-blue"><app-icon name="analytics" [size]="14" /></span>
+          </div>
+          <div class="an2-kpi-val">₹{{ AVG_FTL_TICKET_INR_L }}L</div>
+          <div class="an2-kpi-sub">Value of that first commercial order</div>
+          <div class="an2-kpi-spark"><app-sparkline [data]="FTL_TICKET_TREND_INR_L" [color]="sparkColor('blue')" [responsive]="true" [height]="28"></app-sparkline></div>
+        </button>
+        <button type="button" class="an2-kpi an2-kpi-btn" disabled>
+          <div class="an2-kpi-top">
+            <span class="an2-kpi-label">Stagnant-at-Birth Rate</span>
+            <span class="an2-kpi-ic tone-warn"><app-icon name="alert" [size]="14" /></span>
+          </div>
+          <div class="an2-kpi-val">{{ STAGNANT_AT_BIRTH_PCT }}%</div>
+          <div class="an2-kpi-sub">Zero orders 30 days after onboarding</div>
+          <div class="an2-kpi-spark"><app-sparkline [data]="STAGNANT_AT_BIRTH_TREND_PCT" [color]="sparkColor('warn')" [responsive]="true" [height]="28"></app-sparkline></div>
+        </button>
+      </div>
+
+      <div class="an-eff-head">
+        <span class="an-eff-head-ic"><app-icon name="flag" [size]="16" /></span>
+        <div class="an-eff-head-text">
+          <h3>Territory Penetration &amp; White-Space Capture</h3>
+          <p>Expanding into low-market-share regions, not just over-indexing on easy, already-saturated urban pockets.</p>
+        </div>
+      </div>
+      <div class="an2-kpis" style="grid-template-columns: repeat(1, 1fr)">
+        <button type="button" class="an2-kpi an2-kpi-btn" disabled>
+          <div class="an2-kpi-top">
+            <span class="an2-kpi-label">White-Space Conversions</span>
+            <span class="an2-kpi-ic tone-ai"><app-icon name="flag" [size]="14" /></span>
+          </div>
+          <div class="an2-kpi-val">{{ WHITE_SPACE_TOTAL }}</div>
+          <div class="an2-kpi-sub">New partners acquired in newly opened / underserved pin codes</div>
+        </button>
+      </div>
+      <div class="an-row2">
+        <app-card title="White-Space Conversions by Tier">
+          <div class="hbars">
+            @for (d of WHITE_SPACE_CONVERSIONS; track d.label) {
+              <div class="hbar">
+                <div class="top">
+                  <span class="nm">{{ d.label }}</span>
+                  <span class="vv">{{ d.value }}{{ d.sub ? ' · ' + d.sub : '' }}</span>
+                </div>
+                <div class="track"><div class="fill" [style.width.%]="(d.value / 27) * 100"></div></div>
+              </div>
+            }
+          </div>
+        </app-card>
+        <app-card title="Category Representation">
+          <div class="hbars">
+            @for (d of CATEGORY_REPRESENTATION; track d.label) {
+              <div class="hbar">
+                <div class="top">
+                  <span class="nm">{{ d.label }}</span>
+                  <span class="vv">{{ d.value }}{{ d.sub ? ' · ' + d.sub : '' }}</span>
+                </div>
+                <div class="track"><div class="fill alt" [style.width.%]="(d.value / 37) * 100"></div></div>
+              </div>
+            }
+          </div>
+        </app-card>
+      </div>
+
+      <div class="an-eff-head">
+        <span class="an-eff-head-ic"><app-icon name="partners" [size]="16" /></span>
+        <div class="an-eff-head-text">
+          <h3>Field Force Productivity &amp; CAC</h3>
+          <p>Efficiency and cost of the Feet-on-Street (FOS) field force driving onboarding volume.</p>
+        </div>
+      </div>
+      <div class="an2-kpis" style="grid-template-columns: repeat(2, 1fr)">
+        <button type="button" class="an2-kpi an2-kpi-btn" disabled>
+          <div class="an2-kpi-top">
+            <span class="an2-kpi-label">Avg Onboardings / FOS / Day</span>
+            <span class="an2-kpi-ic tone-good"><app-icon name="partners" [size]="14" /></span>
+          </div>
+          <div class="an2-kpi-val">{{ AVG_ONBOARDINGS_PER_FOS_PER_DAY }}</div>
+          <div class="an2-kpi-sub">Verified partners registered per field executive per day</div>
+        </button>
+        <button type="button" class="an2-kpi an2-kpi-btn" disabled>
+          <div class="an2-kpi-top">
+            <span class="an2-kpi-label">Avg Customer Acquisition Cost</span>
+            <span class="an2-kpi-ic tone-warn"><app-icon name="analytics" [size]="14" /></span>
+          </div>
+          <div class="an2-kpi-val">₹{{ AVG_CAC_INR.toLocaleString() }}</div>
+          <div class="an2-kpi-sub">Field cost per successfully activated partner</div>
+          <div class="an2-kpi-spark"><app-sparkline [data]="CAC_TREND_INR" [color]="sparkColor('warn')" [responsive]="true" [height]="28"></app-sparkline></div>
+        </button>
+      </div>
+      <app-card title="Field Executive Productivity">
+        <div class="an2-ranked">
+          @for (f of sortedFieldExecutives; track f.id) {
+            <div class="an-fe-row">
+              <div class="an-fe-main">
+                <span class="nm">{{ f.name }}</span>
+                <span class="an-fe-region">{{ f.region }}</span>
+              </div>
+              <div class="an-fe-stats">
+                <span title="Onboardings / day"><b>{{ f.onboardingsPerDay }}</b>/day</span>
+                <span title="Total onboarded"><b>{{ f.totalOnboarded }}</b> total</span>
+                <span title="Customer acquisition cost"><b>₹{{ f.cacInr.toLocaleString() }}</b> CAC</span>
+                <span [class]="f.earlyChurnPct >= 15 ? 'crit' : 'good'" title="Early churn — stopped buying after month one">
+                  <b>{{ f.earlyChurnPct }}%</b> churn
+                </span>
+              </div>
+            </div>
+          }
+        </div>
+      </app-card>
+    </div>
+  }
+</div>

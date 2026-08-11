@@ -1,0 +1,345 @@
+<div>
+  <div class="page-head">
+    <div class="row-between" [style.flex-wrap]="'wrap'" [style.gap]="'0.8rem'">
+      <div>
+        <h1>GTM Coverage — {{ sel().name }} <span class="page-info-ic" title="Real-time overview of distributor coverage and outreach performance."><app-icon name="help" [size]="13"></app-icon></span></h1>
+      </div>
+      <div class="gtm-head-ctrl">
+        <select class="mini-select" [ngModel]="selected() ?? ''" (ngModelChange)="setSelected($event)">
+          <option value="">{{ regionFilter() ? 'All ' + regionFilter() : 'All India' }}</option>
+          @for (s of visibleStates(); track s.code) {
+            <option [value]="s.code">{{ s.name }}</option>
+          }
+        </select>
+        <app-button variant="ghost" (click)="exportView()"><app-icon name="download" [size]="14"></app-icon> Export</app-button>
+      </div>
+    </div>
+    @if (regionFilter(); as rf) {
+      <p class="muted-note" [style.margin-top]="'0.4rem'">
+        <app-icon name="target" [size]="12"></app-icon> Filtered to the <strong>{{ rf }}</strong> region — {{ visibleStates().length }} state{{ visibleStates().length === 1 ? '' : 's' }}, {{ visibleActualTotal() }} distributors appointed.
+        <button class="btn text sm" [style.margin-left]="'0.5rem'" [style.padding]="0" (click)="clearRegionFilter()">Clear filter</button>
+      </p>
+    }
+  </div>
+
+  <!-- stat tiles -->
+  <div class="gtm3-tiles gtm3-tiles6">
+    @for (t of tiles(); track t.label) {
+      <button type="button" class="gtm3-tile gtm3-tile-btn" (click)="onTileClick(t.action)">
+        <div>
+          <div class="gtm3-tile-label">{{ t.label }}</div>
+          <div class="gtm3-tile-big">{{ t.big }}</div>
+          <div class="gtm3-tile-sub">@if (t.sub) { <b>{{ t.sub }}</b> } <span>{{ t.note }}</span></div>
+        </div>
+        <span class="gtm3-tile-ic {{ 'tone-' + t.tone }}"><app-icon [name]="t.icon" [size]="16"></app-icon></span>
+      </button>
+    }
+  </div>
+
+  <div class="gtm4-row3">
+    <!-- choropleth map -->
+    <app-card className="gtm2-card">
+      <div class="gtm2-fact-title" [style.margin-bottom]="'0.6rem'">Coverage Heatmap</div>
+      <div class="gtm3-map">
+        <div class="gtm2-stage" #stage>
+          <div class="gtm2-zoom">
+            <button title="Zoom in" (click)="zoomIn()">+</button>
+            <button title="Zoom out" (click)="zoomOut()">−</button>
+            <button title="Fullscreen" (click)="fullscreen()">⛶</button>
+          </div>
+          <div class="gtm2-svgwrap">
+            <svg [attr.viewBox]="indiaMap.viewBox" role="img" aria-label="India state coverage map"
+              [style.transform]="'scale(' + zoom() + ')'">
+              @for (loc of indiaMap.locations; track loc.id) {
+                <path [attr.d]="loc.path" [attr.fill]="TIER_COLOR[tierForLocation(loc.id)]"
+                  [class]="pathClass(loc.id)"
+                  (click)="onMapClick(loc.id)">
+                  <title>{{ pathTitle(loc) }}</title>
+                </path>
+              }
+            </svg>
+          </div>
+          <div class="gtm3-legend">
+            <div class="gtm3-legend-title">Coverage</div>
+            @for (t of TIERS; track t) {
+              <span class="row"><span class="swatch" [style.background]="TIER_COLOR[t]"></span> {{ TIER_LABEL[t] }}</span>
+            }
+          </div>
+        </div>
+      </div>
+      <!-- selected-state summary strip — sits below the map, never covers it -->
+      <div class="gtm4-summary">
+        <div class="gtm4-summary-name">{{ sel().name }}</div>
+        <div class="gtm4-summary-row">
+          <span>Coverage</span>
+          <span class="bar"><i [style.width.%]="min100(selPct())" [style.background]="TIER_COLOR[selTier()]"></i></span>
+          <b>{{ selPct() }}%</b>
+        </div>
+        <div class="gtm4-summary-kvs">
+          <span>Distributors <b>{{ stateDbs().length }}</b></span>
+          <span>Active <b>{{ selActive() }}</b></span>
+          <span>In Review <b>{{ selInReview() }}</b></span>
+          <span>Not Active <b>{{ selNotActive() }}</b></span>
+        </div>
+        <app-button variant="ghost" size="sm" (click)="scrollToDistributors()">View Details →</app-button>
+      </div>
+    </app-card>
+
+    <!-- top states rail -->
+    <app-card className="gtm2-card">
+      <div class="gtm2-gaps" [style.margin-top]="0">
+        <div class="gtm2-gaps-head">
+          <span>Top States by Coverage</span>
+          <button class="btn text sm" [style.padding]="0" (click)="toggleAllStates()">
+            {{ allStates() ? 'Top 8' : 'View all' }}
+          </button>
+        </div>
+        @for (s of topStates(); track s.code) {
+          <button class="gtm2-gap-row" (click)="selected.set(s.code)">
+            <span class="n">{{ s.name }}</span>
+            <span class="pct" [style.background]="'transparent'" [style.color]="TIER_COLOR[tierForPct(pctOf(s) ?? 0)]">{{ pctOf(s) }}%</span>
+            <span class="bar"><i [style.width.%]="min100(pctOf(s) ?? 0)" [style.background]="TIER_COLOR[tierForPct(pctOf(s) ?? 0)]"></i></span>
+            <span class="cnt"><b>{{ s.actual }}</b> / {{ s.target }}</span>
+            <span class="go">›</span>
+          </button>
+        }
+      </div>
+    </app-card>
+
+    <!-- channel-type donut for the selected state -->
+    <app-card className="gtm2-card">
+      <div class="gtm2-fact-title" [style.margin-bottom]="'0.6rem'">Coverage by Channel Type</div>
+      @if (channelCounts().length === 0) {
+        <p class="muted-note">No distributors appointed in {{ sel().name }} yet.</p>
+      } @else {
+        <div class="donut-wrap">
+          <div class="donut">
+            <svg viewBox="0 0 120 120" width="100%" height="100%">
+              <g [attr.transform]="'rotate(-90 60 60)'">
+                <circle cx="60" cy="60" r="46" fill="none" stroke="var(--surface-3)" stroke-width="16"></circle>
+                @for (s of donutSegments(); track s.type) {
+                  @if (s.count > 0) {
+                    <circle cx="60" cy="60" r="46" fill="none" [attr.stroke]="channelColor(s.type)" stroke-width="16"
+                      [attr.stroke-dasharray]="s.len + ' ' + (donutCircumference - s.len)" [attr.stroke-dashoffset]="s.offset" stroke-linecap="butt"></circle>
+                  }
+                }
+              </g>
+            </svg>
+            <div class="center"><span class="n">{{ stateDbs().length }}</span><span class="c">Total</span></div>
+          </div>
+          <div class="donut-legend">
+            @for (s of donutSegments(); track s.type) {
+              <button type="button" class="row donut-row-btn" (click)="onChannelSelect(s.type)">
+                <span class="sw" [style.background]="channelColor(s.type)"></span>
+                <span class="nm">{{ s.type }}</span>
+                <span class="vv">{{ s.count }} ({{ s.pct }}%)</span>
+              </button>
+            }
+          </div>
+        </div>
+      }
+      <div class="gtm3-viewall">
+        <app-button variant="ghost" size="sm" (click)="navigateToPartners()">View Channel Breakdown →</app-button>
+      </div>
+    </app-card>
+  </div>
+
+  <!-- distributors appointed in the selected state — full width, since its 5-column table
+      needs more room than a 3-across grid can spare it. -->
+  <div #distributors>
+    <app-card className="gtm2-card">
+      <div class="gtm2-fact-head" [style.margin-bottom]="'0.6rem'">
+        <div>
+          <div class="gtm2-fact-title">Distributors in {{ sel().name }}</div>
+          <div class="gtm2-fact-sub">
+            {{ filteredDbs().length }} distributor{{ filteredDbs().length === 1 ? '' : 's' }}
+            @if (statusFilter() !== 'all' || townFilter()) {
+              · filtered{{ statusFilter() !== 'all' ? ' · ' + statusFilter() : '' }}{{ townFilter() ? ' · ' + townFilter() : '' }}
+              <button class="btn text sm" [style.padding]="0" [style.margin-left]="'0.4rem'" (click)="clearDistributorFilters()">Clear</button>
+            }
+          </div>
+        </div>
+        <div class="gtm2-fact-ctrl">
+          <select class="mini-select" [ngModel]="category()" (ngModelChange)="onCategoryChange($event)">
+            <option value="All">All types</option>
+            @for (t of DB_TYPES; track t) {
+              <option [value]="t">{{ t }}</option>
+            }
+          </select>
+          <app-button variant="ghost" size="sm" title="Export" (click)="exportView()"><app-icon name="download" [size]="13"></app-icon></app-button>
+        </div>
+      </div>
+      @if (filteredDbs().length === 0) {
+        <p class="muted-note" [style.margin]="0">
+          {{ stateDbs().length === 0
+            ? 'No distributors appointed in ' + sel().name + ' yet — a whitespace the Lead Generation Agent can target.'
+            : 'No matching distributors appointed in ' + sel().name + '.' }}
+        </p>
+      } @else {
+        <div class="dtable-wrap" [style.border]="'none'">
+          <table class="dtable">
+            <thead><tr><th>Distributor</th><th>Town</th><th>Type</th><th>Status</th><th>Last Activity</th></tr></thead>
+            <tbody>
+              @for (d of displayedDbs(); track d.name + '-' + d.town) {
+                <tr class="clickable" (click)="navigateToPartner(d.name)">
+                  <td class="strong">{{ d.name }}</td>
+                  <td>{{ d.town }}</td>
+                  <td>{{ d.type }}</td>
+                  <td>
+                    @if (d.status === 'Active') {
+                      <app-pill tone="good" [dot]="true">Active</app-pill>
+                    } @else {
+                      <app-pill tone="warn" [dot]="true">In review</app-pill>
+                    }
+                  </td>
+                  <td class="gtm-nowrap">{{ lastActivityOf(d) }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+      @if (filteredDbs().length > 5) {
+        <div class="gtm3-viewall">
+          <app-button variant="ghost" size="sm" (click)="toggleShowAllDbs()">
+            {{ showAllDbs() ? 'Show fewer' : 'View all ' + filteredDbs().length + ' distributors' }} →
+          </app-button>
+        </div>
+      }
+    </app-card>
+  </div>
+
+  <div class="gtm3-splitrow">
+    <!-- selected-state drill: cities where the mock has them — actual counts and distributor
+        chips are computed from the (filtered) list above, not a separately-tracked number, so
+        they can never drift out of sync with what's actually listed for this state. -->
+    @if (drill(); as drill) {
+      <app-card className="gtm2-card">
+        <div class="gtm2-fact-head" [style.margin-bottom]="'0.6rem'">
+          <div>
+            <div class="gtm2-fact-title">{{ sel().name }} — City Drill-down</div>
+            <div class="gtm2-fact-sub">
+              {{ category() === 'All' ? 'Coverage vs appointed' : 'Appointed ' + category() + ' distributors by city' }}
+            </div>
+          </div>
+        </div>
+        <div class="gtm3-cities gtm3-cities-col">
+          @for (row of cityRows(); track row.city) {
+            <button type="button" class="gtm3-city gtm3-city-btn" [class.on]="townFilter() === row.city"
+              (click)="goToDistributors({ town: row.city })">
+              <div class="gtm3-city-head">
+                <span class="n">{{ row.city }}</span>
+                <span class="c">
+                  <b>{{ row.actual }}</b>@if (category() === 'All') { / {{ row.target }} } <span [style.color]="TIER_COLOR[row.tier]">{{ row.pct }}%</span>
+                </span>
+              </div>
+              <span class="bar"><i [style.width.%]="min100(row.pct)" [style.background]="TIER_COLOR[row.tier]"></i></span>
+              @if (row.dbs.length > 0) {
+                <div class="gtm3-city-dbs">
+                  @if (row.dbs.length > 10) {
+                    <span class="db db-count">{{ row.dbs.length }} distributors</span>
+                  } @else {
+                    @for (d of row.dbs; track d.name) {
+                      <span class="db">{{ d.name }}{{ d.status === 'In review' ? ' · in review' : '' }}</span>
+                    }
+                  }
+                </div>
+              }
+            </button>
+          }
+        </div>
+      </app-card>
+    }
+
+    <!-- grievances raised by distributors appointed in the selected state -->
+    <app-card [className]="'gtm2-card' + (drill() ? '' : ' gtm-span2')">
+      <div class="gtm2-fact-head" [style.margin-bottom]="'0.6rem'">
+        <div class="gtm2-fact-title">Grievances in {{ sel().name }}</div>
+        <app-pill [tone]="grievanceTone()" [dot]="true">{{ grievanceOpenCount() }} Open</app-pill>
+      </div>
+      @if (stateGrievances().length === 0) {
+        <p class="muted-note" [style.margin]="0">No grievances on record for {{ sel().name }}.</p>
+      } @else {
+        <div class="gtm3-grv-list">
+          @for (g of stateGrievances(); track g.id) {
+            <button type="button" class="gtm3-grv-row gtm3-grv-btn" (click)="navigateToGrievance(g.id)">
+              <div>
+                <div class="strong">{{ g.subject }}</div>
+                <div class="gtm2-f-sub">Raised by {{ g.distributor }}</div>
+              </div>
+              <div class="gtm3-grv-meta">
+                <app-pill [tone]="priorityTone(g.priority)" [dot]="true">{{ g.priority }}</app-pill>
+                @if (g.isOverdue) {
+                  <app-pill tone="crit" [dot]="true">Overdue</app-pill>
+                } @else {
+                  <app-pill [tone]="g.status === 'resolved' ? 'good' : 'warn'" [dot]="true">{{ g.slaLabel }}</app-pill>
+                }
+              </div>
+            </button>
+          }
+        </div>
+      }
+      <div class="gtm3-viewall">
+        <app-button variant="ghost" size="sm" (click)="navigateToGrievances()">View all grievances →</app-button>
+      </div>
+    </app-card>
+  </div>
+
+  <!-- GTM factors comparison for the selected state -->
+  <div #factors></div>
+  <app-card className="gtm2-card">
+    <div class="gtm2-fact-head">
+      <div>
+        <div class="gtm2-fact-title">GTM factors comparison — {{ sel().name }} vs. plan</div>
+        <div class="gtm2-fact-sub">Compare key GTM factors to understand gaps and priorities.</div>
+      </div>
+    </div>
+
+    <div class="dtable-wrap" [style.border]="'none'">
+      <table class="dtable gtm2-ftable">
+        <thead>
+          <tr>
+            <th>GTM factor</th>
+            <th>{{ sel().name }} (actual)</th>
+            <th>Plan (target)</th>
+            <th>Variance</th>
+            <th>Coverage</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (f of rows(); track f.key) {
+            <tr>
+              <td>
+                <div class="gtm2-f">
+                  <span class="gtm2-f-ic"><app-icon [name]="asIconName(f.icon)" [size]="15"></app-icon></span>
+                  <div>
+                    <div class="gtm2-f-name">{{ f.label }}</div>
+                    <div class="gtm2-f-sub">{{ f.sub }}</div>
+                  </div>
+                </div>
+              </td>
+              <td><b class="gtm2-num">{{ fmtVal(f.actual, f.money) }}</b><span class="gtm2-unit">{{ f.money ? 'approved' : 'appointed' }}</span></td>
+              <td><b class="gtm2-num">{{ fmtVal(f.target, f.money) }}</b><span class="gtm2-unit">target</span></td>
+              <td>
+                <span class="gtm2-var" [class.up]="f.variance >= 0" [class.down]="f.variance < 0">
+                  {{ f.variance >= 0 ? '↑' : '↓' }} {{ f.money ? '₹' + absNum(f.variance).toFixed(1) + 'L' : absNum(f.variance) }} <span class="p">({{ f.variancePct }}%)</span>
+                </span>
+              </td>
+              <td>
+                <div class="gtm2-cov">
+                  <span class="bar"><i [style.width.%]="min100(f.coverage)" [style.background]="f.coverage >= 100 ? 'var(--good)' : 'var(--crit)'"></i></span>
+                  <span class="v">{{ f.coverage }}%</span>
+                </div>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+    <div class="gtm2-more">
+      <app-button variant="ghost" size="sm" (click)="toggleMoreFactors()">
+        {{ moreFactors() ? 'Show fewer factors' : 'Show more factors' }} <app-icon name="chevronDown" [size]="12"></app-icon>
+      </app-button>
+    </div>
+  </app-card>
+</div>

@@ -1,0 +1,27 @@
+@if (error()) {
+  <p class="muted-note">Couldn't render the original document.</p>
+} @else {
+  <div class="pdf-hl-wrap" #outer>
+    <div class="pdf-hl-canvas-wrap" [style.width.px]="rendered()?.width" [style.height.px]="rendered()?.height">
+      <canvas #canvas></canvas>
+      @if (rendered(); as r) {
+        @for (m of pageMatches(); track $index) {
+          <div
+            class="pdf-hl-box"
+            [style.left.px]="m.x * r.width"
+            [style.top.px]="m.y * r.height"
+            [style.width.px]="m.width * r.width"
+            [style.height.px]="m.height * r.height"
+          ></div>
+        }
+      }
+    </div>
+    @if (pageCount() > 1) {
+      <div class="pdf-hl-pager">
+        <button class="btn ghost sm" [disabled]="pageIndex() <= 0" (click)="prevPage()">‹</button>
+        <span class="muted-note" style="margin: 0">Page {{ pageIndex() + 1 }} of {{ pageCount() }}</span>
+        <button class="btn ghost sm" [disabled]="pageIndex() >= pageCount() - 1" (click)="nextPage()">›</button>
+      </div>
+    }
+  </div>
+}

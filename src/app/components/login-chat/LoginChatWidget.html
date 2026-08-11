@@ -1,0 +1,146 @@
+<ng-template #conversation>
+  <div class="chat-body">
+    @for (m of messages(); track m.id; let isLast = $last) {
+      <div class="chat-msg" [class.chat-msg-bot]="m.role === 'bot'" [class.chat-msg-user]="m.role === 'user'">
+        @if (m.role === 'bot') {
+          @if (isLast) {
+            <app-streaming-text [text]="m.text" />
+          } @else {
+            <app-ai-text [text]="m.text" />
+          }
+        } @else {
+          {{ m.text }}
+        }
+      </div>
+    }
+    @if (typing()) {
+      <div class="chat-msg chat-msg-bot chat-typing">
+        <span></span><span></span><span></span>
+      </div>
+    }
+  </div>
+
+  @if (!done()) {
+    <div class="chat-input">
+      @if (currentNode().kind === 'choice') {
+        <button type="button" class="chat-options-toggle" (click)="toggleOptions()">
+          <span>{{ optionsExpanded() ? 'Hide options' : 'Show options' }}</span>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round" [class.chat-options-toggle-open]="optionsExpanded()">
+            <path d="M6 9l6 6 6-6" />
+          </svg>
+        </button>
+        @if (optionsExpanded()) {
+          <div class="chat-choices">
+            @for (c of visibleChoices(); track c.next) {
+              <button type="button" class="chat-choice" (click)="selectChoice(c.next)">{{ c.label }}</button>
+            }
+          </div>
+        }
+        <form class="chat-text-form chat-text-form-secondary" (ngSubmit)="submitFreeTextAtChoice()">
+          <input class="chat-text-input" type="text" placeholder="Or type your question…"
+            [ngModel]="inputValue()" (ngModelChange)="inputValue.set($event)" name="chatFreeText" />
+          <button type="submit" class="chat-send" aria-label="Send">
+            <app-icon name="send" [size]="16" />
+          </button>
+        </form>
+      } @else {
+        <form class="chat-text-form" (ngSubmit)="submitText()">
+          <input class="chat-text-input" type="text" [placeholder]="currentNode().placeholder ?? ''"
+            [ngModel]="inputValue()" (ngModelChange)="inputValue.set($event); inputError.set(null)" name="chatInput" />
+          <button type="submit" class="chat-send" [disabled]="submitting()" aria-label="Send">
+            <app-icon name="send" [size]="16" />
+          </button>
+        </form>
+        @if (inputError()) {
+          <div class="chat-error">{{ inputError() }}</div>
+        }
+      }
+    </div>
+  } @else {
+    <div class="chat-input">
+      <button type="button" class="chat-choice" (click)="restart()">Start a new conversation</button>
+    </div>
+  }
+</ng-template>
+
+@if (variant() === 'sidebar') {
+  @if (!panelOpen()) {
+    <button type="button" class="support-fab" (click)="toggle()" title="Get support" aria-label="Open support">
+      <app-icon name="help" [size]="24" />
+    </button>
+  } @else {
+    <aside class="support-rail" [class.support-rail-fullscreen]="fullscreen()" role="complementary" aria-label="Support">
+      <div class="support-head">
+        <span class="title">Support</span>
+        <div class="support-head-actions">
+          <button type="button" class="x" (click)="toggleFullscreen()"
+            [attr.aria-label]="fullscreen() ? 'Exit full screen' : 'Full screen'">
+            @if (fullscreen()) {
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3" />
+              </svg>
+            } @else {
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3" />
+              </svg>
+            }
+          </button>
+          <button type="button" class="x" (click)="toggle()" aria-label="Close support">
+            <app-icon name="close" [size]="16" />
+          </button>
+        </div>
+      </div>
+      <ng-container *ngTemplateOutlet="conversation" />
+    </aside>
+  }
+} @else {
+  <button type="button" class="chat-fab" [class.chat-fab-open]="open()" (click)="toggle()" aria-label="Open support chat">
+    @if (open()) {
+      <app-icon name="close" [size]="22" />
+    } @else {
+      <app-icon name="help" [size]="24" />
+    }
+  </button>
+
+  @if (open()) {
+    <div class="chat-panel" [class.chat-panel-fullscreen]="fullscreen() && !minimized()" [class.chat-panel-minimized]="minimized()">
+      <div class="chat-header">
+        <span class="chat-title">Support</span>
+        <div class="chat-header-actions">
+          <button type="button" class="chat-icon-btn" (click)="toggleMinimize()"
+            [attr.aria-label]="minimized() ? 'Restore' : 'Minimize'">
+            @if (minimized()) {
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M18 15l-6-6-6 6" />
+              </svg>
+            } @else {
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M6 9l6 6 6-6" />
+              </svg>
+            }
+          </button>
+          <button type="button" class="chat-icon-btn" (click)="toggleFullscreen()"
+            [attr.aria-label]="fullscreen() ? 'Exit full screen' : 'Full screen'">
+            @if (fullscreen()) {
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3" />
+              </svg>
+            } @else {
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3" />
+              </svg>
+            }
+          </button>
+          <button type="button" class="chat-icon-btn" (click)="toggle()" aria-label="Close">
+            <app-icon name="close" [size]="16" />
+          </button>
+        </div>
+      </div>
+
+      @if (!minimized()) {
+        <ng-container *ngTemplateOutlet="conversation" />
+      }
+    </div>
+  }
+}

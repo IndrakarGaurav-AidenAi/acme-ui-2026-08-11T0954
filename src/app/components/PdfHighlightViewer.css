@@ -1,0 +1,7 @@
+.pdf-hl-wrap { display: flex; flex-direction: column; align-items: center; gap: 0.5rem; width: 100%; }
+.pdf-hl-canvas-wrap { position: relative; border: 1px solid var(--border); border-radius: var(--r-md);
+  overflow: hidden; background: #fff; }
+.pdf-hl-canvas-wrap canvas { display: block; }
+.pdf-hl-box { position: absolute; background: rgba(255, 214, 0, 0.35); border: 1.5px solid #e0a900;
+  border-radius: 2px; pointer-events: none; }
+.pdf-hl-pager { display: flex; align-items: center; gap: 0.6rem; }

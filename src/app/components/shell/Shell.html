@@ -1,0 +1,119 @@
+<div class="shell {{ store.supportOpen() ? 'with-copilot' : '' }}">
+  <aside class="sidebar">
+    <div class="sb-brand">
+      <div class="sb-logo-card"><app-brand-mark /></div>
+      <span class="sb-division">Staples Division</span>
+    </div>
+    @for (group of groups(); track group.label) {
+      <div>
+        <div class="sb-group-label">{{ group.label }}</div>
+        @for (item of group.items; track item.to) {
+          <a [routerLink]="item.to" routerLinkActive="active" [title]="item.label" class="nav-item">
+            <span class="ic"><app-icon [name]="item.ic" /></span>
+            <span class="nav-label">{{ item.label }}</span>
+            @if (liveCountByPath()[item.to] ?? item.count; as count) {
+              <span class="count">{{ count }}</span>
+            }
+          </a>
+        }
+      </div>
+    }
+    <div class="sb-copilot">
+      <div class="sb-user">
+        <span class="avatar" [style.background]="'var(' + role().colorVar + ')'">{{ initials(user().name) }}</span>
+        <div class="sb-user-meta">
+          <b>{{ user().name }}</b>
+          <span>{{ role().label }}</span>
+        </div>
+        <button class="sb-logout" title="Sign out" (click)="onLogout()"><app-icon name="logout" [size]="16" /></button>
+      </div>
+    </div>
+  </aside>
+
+  <div class="content-col">
+    <header class="topbar">
+      @if (currentPath() !== '/dashboard') {
+        <button class="back-btn" (click)="goBack()" title="Go back" aria-label="Go back">
+          <app-icon name="back" [size]="16" /> Back
+        </button>
+      }
+      <nav class="crumbs">
+        <span>Acme Distribution</span>
+        <span class="sep">/</span>
+        <span class="cur">{{ current() }}</span>
+      </nav>
+
+      <div class="topbar-search">
+        <app-icon name="search" [size]="15" />
+        <input placeholder="Search cases, partners, distributors…" aria-label="Search" />
+        <kbd>⌘K</kbd>
+      </div>
+
+      <div class="topbar-spacer"></div>
+
+      <div class="agents-live" title="Simulated agents online"><span class="live-dot"></span>6 agents active</div>
+
+      <div class="topbar-ctrl">
+        <div class="seg" role="group" aria-label="Demo scenario">
+          @for (s of SCENARIOS; track s) {
+            <button [class]="store.scenario() === s ? 'on ' + s : ''" (click)="store.setScenario(s)">
+              {{ s === 'clean' ? 'Auto-clear' : 'Flagged' }}
+            </button>
+          }
+        </div>
+      </div>
+
+      <div class="notif-wrap" #notifRef>
+        <button class="icon-btn" title="Notifications" aria-label="Notifications" (click)="notifOpen.set(!notifOpen())">
+          <app-icon name="bell" [size]="18" />
+          @if (unreadCount() > 0) {
+            <span class="badge-dot"></span>
+          }
+        </button>
+        @if (notifOpen()) {
+          <div class="notif-dropdown" role="menu">
+            <div class="notif-head">
+              <span>Notifications</span>
+              @if (unreadCount() > 0) {
+                <button class="btn text sm" (click)="store.markAllNotificationsRead()">Mark all read</button>
+              }
+            </div>
+            @if (notifications().length === 0) {
+              <div class="notif-empty">You're all caught up.</div>
+            } @else {
+              <div class="notif-list">
+                @for (n of notifications(); track n.id) {
+                  <button class="notif-item {{ n.read ? '' : 'unread' }}" (click)="openNotification(n.id, n.href)">
+                    @if (!n.read) {
+                      <span class="notif-dot"></span>
+                    }
+                    <div class="notif-body">
+                      <div class="notif-title">{{ n.title }}</div>
+                      <div class="notif-text">{{ n.body }}</div>
+                      <div class="notif-time">{{ n.time }}</div>
+                    </div>
+                  </button>
+                }
+              </div>
+            }
+          </div>
+        }
+      </div>
+
+      <div class="topbar-user">
+        <span class="avatar sm" [style.background]="'var(' + role().colorVar + ')'">{{ initials(user().name) }}</span>
+        <select class="mini-select" [value]="viewingAs()" (change)="onViewingAsChange($event)" aria-label="Viewing as persona">
+          @for (r of ROLES; track r.code) {
+            <option [value]="r.code">{{ r.label }}</option>
+          }
+        </select>
+      </div>
+    </header>
+
+    <main class="page">
+      <router-outlet />
+    </main>
+  </div>
+
+  <app-login-chat-widget variant="sidebar" />
+</div>

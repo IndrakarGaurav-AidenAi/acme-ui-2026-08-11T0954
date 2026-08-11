@@ -1,0 +1,27 @@
+@if (timeline().length) {
+  <app-card>
+    <div class="p360-card-head"><span class="p360-card-title">Timeline</span></div>
+    <div class="p360-timeline">
+      @for (t of timeline(); track $index) {
+        <div class="p360-tl-item">
+          <span class="p360-tl-dot tone-{{ t.tone ?? 'neutral' }}"></span>
+          <div class="p360-tl-body">
+            <div class="p360-tl-row">
+              <span class="p360-tl-title">{{ t.title }}</span>
+              @if (t.date) {
+                <span class="p360-tl-date">{{ t.date }}</span>
+              }
+            </div>
+            @if (t.note) {
+              <div class="p360-tl-note">{{ t.note }}</div>
+            }
+            @if (t.by) {
+              <div class="p360-tl-by">{{ t.by }}</div>
+            }
+          </div>
+        </div>
+      }
+    </div>
+    <app-button variant="ghost" size="sm" (click)="viewAll.emit()" style="margin-top: 0.6rem">View full history</app-button>
+  </app-card>
+}

@@ -1,0 +1,28 @@
+@if (data().length >= 2) {
+  <svg
+    [attr.width]="responsive() ? '100%' : width()"
+    [attr.height]="height()"
+    [attr.viewBox]="'0 0 ' + width() + ' ' + height()"
+    [attr.preserveAspectRatio]="responsive() ? 'none' : 'xMidYMid meet'"
+    aria-hidden="true"
+    style="display: block; max-width: 100%"
+  >
+    <defs>
+      <linearGradient [attr.id]="geometry().gid" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" [attr.stop-color]="color()" stop-opacity="0.22" />
+        <stop offset="100%" [attr.stop-color]="color()" stop-opacity="0" />
+      </linearGradient>
+    </defs>
+    <polygon [attr.points]="geometry().area" [attr.fill]="'url(#' + geometry().gid + ')'" />
+    <polyline
+      [attr.points]="geometry().line"
+      fill="none"
+      [attr.stroke]="color()"
+      stroke-width="1.8"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+      vector-effect="non-scaling-stroke"
+    />
+    <circle [attr.cx]="geometry().lastX" [attr.cy]="geometry().lastY" r="2.6" [attr.fill]="color()" />
+  </svg>
+}

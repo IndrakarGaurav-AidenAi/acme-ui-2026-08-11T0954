@@ -1,0 +1,42 @@
+/* ---- Grievances ---- */
+.grv-kpis { margin-bottom: 1.2rem; }
+.grv-sub { font-size: 0.72rem; color: var(--ink-mute); font-weight: 500; margin-top: 0.1rem; }
+.grv-nowrap { white-space: nowrap; }
+
+.grv-sla { font-size: 0.78rem; font-weight: 700; color: var(--ink-soft); }
+.grv-sla.overdue { color: var(--crit-text); }
+
+/* Detail view */
+.grv-detail { display: grid; grid-template-columns: 1fr 300px; gap: 1.1rem; align-items: start; }
+@media (max-width: 860px) { .grv-detail { grid-template-columns: 1fr; } }
+
+.grv-main { padding: 1.4rem; }
+.grv-detail-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; }
+.grv-idrow { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem; }
+.grv-detail-head h2 { font-size: 1.3rem; }
+.grv-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 0.4rem; margin-top: 0.5rem; font-size: 0.82rem; color: var(--ink-soft); }
+.grv-body { font-size: 0.92rem; line-height: 1.65; margin: 1.1rem 0 1.4rem; color: var(--ink-soft); }
+
+.grv-timeline { border-top: 1px solid var(--border); padding-top: 1rem; }
+.grv-timeline .card-title { margin-bottom: 0.9rem; }
+.grv-event { display: flex; gap: 0.7rem; padding-bottom: 1rem; position: relative; }
+.grv-event:not(:last-child)::before { content: ''; position: absolute; left: 5px; top: 14px; bottom: -2px; width: 2px; background: var(--border); }
+.grv-dot { width: 12px; height: 12px; border-radius: 50%; flex: none; margin-top: 2px; background: var(--ai); box-shadow: 0 0 0 3px var(--ai-bg); z-index: 1; }
+.grv-event-note { font-size: 0.86rem; color: var(--ink); line-height: 1.5; }
+.grv-event-meta { font-size: 0.74rem; color: var(--ink-mute); margin-top: 0.15rem; font-family: var(--font-mono); }
+
+.grv-side { display: flex; flex-direction: column; gap: 1.1rem; }
+.grv-status-actions { display: flex; flex-direction: column; gap: 0.45rem; }
+.grv-status-btn { text-align: left; background: var(--surface-2); border: 1px solid var(--border); color: var(--ink-soft);
+  font-size: 0.84rem; font-weight: 600; padding: 0.55rem 0.75rem; border-radius: var(--r-md); cursor: pointer; transition: all 0.13s; }
+.grv-status-btn:hover:not(:disabled) { border-color: var(--ai-border); background: var(--ai-bg); color: var(--ai-text); }
+.grv-status-btn.active { background: var(--ai-bg); border-color: var(--ai); color: var(--ai-text); font-weight: 700; cursor: default; }
+.grv-status-btn:disabled { opacity: 1; }
+
+/* Grievances block on the 360° profile */
+.p360-grv { display: flex; flex-direction: column; gap: 0.55rem; }
+.p360-grv-item { display: flex; align-items: center; gap: 0.7rem; padding: 0.6rem 0.7rem; border: 1px solid var(--border);
+  border-radius: var(--r-md); background: var(--surface); }
+.p360-grv-item .code { font-size: 0.74rem; }
+.p360-grv-subj { font-size: 0.85rem; color: var(--ink); font-weight: 600; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.p360-grv-empty { font-size: 0.85rem; color: var(--ink-mute); }

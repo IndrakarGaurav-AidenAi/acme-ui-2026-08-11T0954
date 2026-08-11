@@ -1,0 +1,271 @@
+<div>
+  <div class="page-head">
+    <h1>Admin &amp; Settings <span class="page-info-ic" title="Manage personas, users and platform-wide behavior. Control who can see what data and how."><app-icon name="help" [size]="13"></app-icon></span></h1>
+  </div>
+
+  <div class="tabs">
+    @for (t of ADMIN_TABS; track t.key) {
+      <button class="tab" [class.active]="tab() === t.key" (click)="tab.set(t.key)">
+        <app-icon [name]="t.ic" [size]="15"></app-icon> {{ t.label }}
+      </button>
+    }
+  </div>
+
+  @if (tab() === 'team') {
+    <div class="stack">
+      <app-card title="Team">
+        <div class="row-between" style="margin-bottom: 0.75rem;">
+          <p class="muted-note" style="margin: 0;">
+            Everyone with access to the platform, their persona (role), and their per-screen permissions. Only Admins can view or edit this list.
+          </p>
+          <app-button size="sm" (click)="openCreate()">+ Add user</app-button>
+        </div>
+        <div class="dtable-wrap" style="border: none;">
+          <table class="dtable">
+            <thead><tr><th>Name</th><th>Email</th><th>Persona</th><th>Region</th><th>Access</th><th>Status</th><th></th></tr></thead>
+            <tbody>
+              @for (u of store.users(); track u.id) {
+                <tr>
+                  <td class="strong">{{ u.name }}</td>
+                  <td>{{ u.email }}</td>
+                  <td>{{ ROLE_BY_CODE[u.roleCode]?.label ?? u.roleCode }}</td>
+                  <td>{{ u.region ?? '—' }}</td>
+                  <td>
+                    <div style="display: flex; gap: 0.3rem;">
+                      <app-pill [tone]="accessSummary(u.access).viewCount ? 'good' : 'neutral'">{{ accessSummary(u.access).viewCount }} view</app-pill>
+                      <app-pill [tone]="accessSummary(u.access).manageCount ? 'ai' : 'neutral'">{{ accessSummary(u.access).manageCount }} manage</app-pill>
+                    </div>
+                  </td>
+                  <td>
+                    <button class="pill-btn" style="background: none; border: none; padding: 0; cursor: pointer;"
+                      (click)="store.updateUser(u.id, { isActive: !u.isActive })">
+                      <app-pill [tone]="u.isActive ? 'good' : 'neutral'" [dot]="true">{{ u.isActive ? 'Active' : 'Inactive' }}</app-pill>
+                    </button>
+                  </td>
+                  <td style="display: flex; gap: 0.5rem;">
+                    <app-button size="sm" variant="ghost" (click)="openEdit(u)">Edit</app-button>
+                    <app-button size="sm" variant="ghost" (click)="store.removeUser(u.id)">Remove</app-button>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </app-card>
+    </div>
+  }
+
+  @if (tab() === 'access') {
+    <div class="stack">
+      <app-card title="Screen access by persona">
+        <p class="muted-note" style="margin-top: 0; margin-bottom: 0.75rem;">
+          Which sidebar screens each persona can open. Untick a screen for a persona and it disappears from
+          their sidebar — if they're on it when it's revoked, they're bounced to Dashboard. Dashboard itself
+          can't be switched off; everyone needs a landing page.
+        </p>
+        <div class="dtable-wrap" style="border: none; overflow-x: auto;">
+          <table class="dtable">
+            <thead>
+              <tr>
+                <th>Screen</th>
+                @for (r of ROLES; track r.code) { <th>{{ r.label }}</th> }
+              </tr>
+            </thead>
+            <tbody>
+              @for (item of navItems; track item.to) {
+                <tr>
+                  <td class="strong">{{ item.label }}</td>
+                  @for (r of ROLES; track r.code) {
+                    <td>
+                      <input type="checkbox" [checked]="screenChecked(r.code, item.to)" [disabled]="isDashboardScreen(item.to)"
+                        (change)="store.toggleModuleAccess(r.code, item.to)" />
+                    </td>
+                  }
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </app-card>
+    </div>
+  }
+
+  @if (tab() === 'data') {
+    <div class="stack">
+      <div class="da-intro">
+        <app-card className="da-intro-card">
+          <div class="da-intro-body">
+            <div class="da-intro-text">
+              <div class="card-title">Data access by persona</div>
+              <p class="da-intro-copy">
+                Control what data each persona can see across regions and states. Set the right scope to ensure
+                data privacy and accuracy.
+              </p>
+            </div>
+            <div class="da-illustration" aria-hidden="true">
+              <span class="da-illus-lock"><app-icon name="lock" [size]="30"></app-icon></span>
+              <span class="da-illus-line da-illus-line-a"></span>
+              <span class="da-illus-line da-illus-line-b"></span>
+              <span class="da-illus-user da-illus-user-a"><app-icon name="user" [size]="15"></app-icon></span>
+              <span class="da-illus-user da-illus-user-b"><app-icon name="user" [size]="13"></app-icon></span>
+            </div>
+          </div>
+        </app-card>
+        <app-card className="da-howitworks-card">
+          <div class="da-howitworks">
+            <span class="da-howitworks-ic"><app-icon name="bulb" [size]="18"></app-icon></span>
+            <div>
+              <div class="card-title" style="margin-bottom: 0.3rem;">How it works</div>
+              <p class="da-intro-copy">
+                Row-level access on top of screen access.<br />Set a scope and we'll do the rest.
+              </p>
+              <a href="#" class="da-learn-more" (click)="$event.preventDefault()">Learn more →</a>
+            </div>
+          </div>
+        </app-card>
+      </div>
+
+      <app-card>
+        <div class="da-grid">
+          @for (r of ROLES; track r.code) {
+            <div class="da-row" [style.border-left]="'4px solid var(' + r.colorVar + ')'">
+              <div class="da-persona">
+                <span class="da-persona-ic"
+                  [style.background]="'color-mix(in srgb, var(' + r.colorVar + ') 14%, transparent)'"
+                  [style.color]="'var(' + r.colorVar + ')'">
+                  <app-icon [name]="ROLE_ICON[r.code]" [size]="24"></app-icon>
+                </span>
+                <div>
+                  <div class="strong">{{ r.label }}</div>
+                  <div class="da-persona-status"><span class="d" style="background: var(--good);"></span>Active</div>
+                  <div class="muted-note" style="margin: 0;">{{ regionStateLabel(r.code) }}</div>
+                </div>
+              </div>
+
+              <div class="da-scope">
+                @for (s of DATA_SCOPES; track s) {
+                  <label class="da-scope-opt" [class.on]="store.dataScopeByRole()[r.code] === s">
+                    <input type="radio" name="scope-{{ r.code }}" [checked]="store.dataScopeByRole()[r.code] === s"
+                      (change)="store.setDataScopeForRole(r.code, s)" />
+                    <span class="da-scope-label">{{ DATA_SCOPE_LABEL[s] }}</span>
+                    <span class="da-scope-hint">{{ DATA_SCOPE_HINT[s] }}</span>
+                  </label>
+                }
+              </div>
+
+              <div class="da-entities">
+                <div class="da-entities-label">Applies to</div>
+                @for (e of DATA_ENTITIES; track e.key) {
+                  <label class="da-entity-opt" [class.locked]="store.dataScopeByRole()[r.code] === 'all'">
+                    <input type="checkbox"
+                      [checked]="store.dataScopeByRole()[r.code] === 'all' || store.dataEntitiesByRole()[r.code].includes(e.key)"
+                      [readOnly]="store.dataScopeByRole()[r.code] === 'all'"
+                      (change)="store.dataScopeByRole()[r.code] !== 'all' && store.toggleDataEntity(r.code, e.key)" />
+                    <span>{{ e.label }}</span>
+                  </label>
+                }
+              </div>
+
+              <div class="da-entities">
+                <div class="da-entities-label" title="Which of Analytics' own tabs this persona can see — independent of the row-scoping above.">
+                  Analytics tabs
+                </div>
+                @for (sec of ANALYTICS_SECTIONS; track sec.key) {
+                  <label class="da-entity-opt">
+                    <input type="checkbox" [checked]="store.analyticsSectionsByRole()[r.code].includes(sec.key)"
+                      (change)="store.toggleAnalyticsSection(r.code, sec.key)" />
+                    <span>{{ sec.label }}</span>
+                  </label>
+                }
+              </div>
+            </div>
+          }
+        </div>
+
+        <div class="da-foot">
+          <p class="da-foot-note">
+            <app-icon name="info" [size]="14"></app-icon> Changes are auto-saved and applied in real time.
+          </p>
+          <app-button size="sm" (click)="goAuditLog()">
+            <app-icon name="list" [size]="14"></app-icon> Audit History
+          </app-button>
+        </div>
+      </app-card>
+    </div>
+  }
+
+  @if (tab() === 'settings') {
+    <div class="stack">
+      <app-card title="Platform settings">
+        <div style="display: flex; flex-direction: column; gap: 1rem;">
+          <div class="row-between">
+            <div>
+              <div style="font-weight: 700; font-size: 0.88rem;">Require Document Intelligence for all Vendor onboarding</div>
+              <div class="muted-note">{{ requireDoc() ? 'On — enforced for every Vendor case' : 'Off — left to MDM\'s discretion per case' }}</div>
+            </div>
+            <app-toggle [on]="requireDoc()" (toggled)="requireDoc.set($event)"></app-toggle>
+          </div>
+          <div class="row-between">
+            <div>
+              <div style="font-weight: 700; font-size: 0.88rem;">Auto-notify on SLA breach</div>
+              <div class="muted-note">{{ autoNotify() ? 'On — Routing & Compliance Agent alerts the owner immediately' : 'Off' }}</div>
+            </div>
+            <app-toggle [on]="autoNotify()" (toggled)="autoNotify.set($event)"></app-toggle>
+          </div>
+        </div>
+      </app-card>
+      <p class="muted-note">Partner types and their documents/workflow are configured in Templates, not here.</p>
+    </div>
+  }
+
+  <app-modal [open]="modalOpen()" [title]="editingId() ? 'Edit user' : 'Add user'" size="lg" (closed)="modalOpen.set(false)">
+    <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+      <div style="display: flex; gap: 0.75rem;">
+        <div class="field" style="flex: 1;">
+          <label for="u-name">Name</label>
+          <input id="u-name" class="input" [ngModel]="form().name" (ngModelChange)="patchForm({ name: $event })" name="name" />
+        </div>
+        <div class="field" style="flex: 1;">
+          <label for="u-email">Email</label>
+          <input id="u-email" class="input" type="email" [ngModel]="form().email" (ngModelChange)="patchForm({ email: $event })" name="email" />
+        </div>
+      </div>
+      <div style="display: flex; gap: 0.75rem;">
+        <div class="field" style="flex: 1;">
+          <label for="u-role">Persona (role)</label>
+          <select id="u-role" class="input" [ngModel]="form().roleCode" (ngModelChange)="changeRole($event)" name="roleCode">
+            @for (r of ROLES; track r.code) {
+              <option [value]="r.code">{{ r.label }}</option>
+            }
+          </select>
+        </div>
+        <div class="field" style="flex: 1;">
+          <label for="u-region">Region</label>
+          <input id="u-region" class="input" [ngModel]="form().region" (ngModelChange)="patchForm({ region: $event })" name="region" />
+        </div>
+      </div>
+
+      <div class="field">
+        <label>Permissions</label>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 0.75rem;">
+          @for (item of navItems; track item.to) {
+            <div style="border: 1px solid var(--border); border-radius: 10px; padding: 0.75rem 0.9rem; min-width: 0;">
+              <div style="display: flex; align-items: center; gap: 0.45rem; font-weight: 700; font-size: 0.85rem; margin-bottom: 0.65rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                <app-icon [name]="item.ic" [size]="16"></app-icon> {{ item.label }}
+              </div>
+              <div style="display: flex; justify-content: space-between; gap: 0.5rem;">
+                <app-toggle [on]="permFor(item.to).view" (toggled)="setPermission(item.to, { view: $event, manage: $event ? permFor(item.to).manage : false })">View</app-toggle>
+                <app-toggle [on]="permFor(item.to).manage" (toggled)="setPermission(item.to, { manage: $event })">Manage</app-toggle>
+              </div>
+            </div>
+          }
+        </div>
+      </div>
+
+      <div class="row-between" style="margin-top: 0.5rem;">
+        <app-button variant="ghost" (click)="modalOpen.set(false)">Cancel</app-button>
+        <app-button (click)="save()">{{ editingId() ? 'Save changes' : 'Add user' }}</app-button>
+      </div>
+    </div>
+  </app-modal>
+</div>

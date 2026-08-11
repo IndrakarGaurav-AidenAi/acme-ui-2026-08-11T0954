@@ -1,0 +1,48 @@
+<div>
+  <div class="page-head">
+    <h1>Templates <span class="page-info-ic" title="The configuration layer: partner type → required documents → approval workflow. Adding a new partner type is a new row here, not a new build."><app-icon name="help" [size]="13"></app-icon></span></h1>
+  </div>
+
+  <div class="tpl-note">
+    <strong>Templatized from day one.</strong> Distributor and Vendor are configured today. Selecting a type in
+    New Application applies its documents and workflow automatically — Logistics and Co-packer reuse the same engine
+    when Acme Distribution is ready.
+  </div>
+
+  <div class="tpl-list">
+    @for (t of partnerTypes(); track t.code) {
+      <div class="tpl-card" [class.soon]="!t.isActive">
+        <div class="tpl-head">
+          <span class="mk" [style.background]="partnerTypeColor[t.code]">{{ t.label[0] }}</span>
+          <span class="nm">{{ t.label }}</span>
+          @if (t.isActive) {
+            <app-pill tone="good">Configured</app-pill>
+          } @else {
+            <app-pill tone="warn">Coming soon</app-pill>
+          }
+        </div>
+        <div class="tpl-cols">
+          <div>
+            <div class="col-h">Required documents</div>
+            <div class="chip-row">
+              @for (d of t.documents; track d) {
+                <span class="chip">{{ d }}</span>
+              }
+            </div>
+          </div>
+          <div>
+            <div class="col-h">Approval workflow</div>
+            <div class="flow-row">
+              @for (w of t.workflow; track w; let i = $index) {
+                @if (i > 0) {
+                  <span class="arr">→</span>
+                }
+                <span class="fstep">{{ w }}</span>
+              }
+            </div>
+          </div>
+        </div>
+      </div>
+    }
+  </div>
+</div>

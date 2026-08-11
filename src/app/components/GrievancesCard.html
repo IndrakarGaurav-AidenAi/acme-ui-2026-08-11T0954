@@ -1,0 +1,26 @@
+@if (data().grievances; as grievances) {
+  <app-card [title]="'Grievances raised (' + grievances.length + ')'">
+    @if (grievances.length === 0) {
+      <p class="p360-grv-empty">No grievances on record for this distributor.</p>
+    } @else {
+      <div class="p360-grv">
+        @for (g of grievances; track g.id) {
+          <div
+            class="p360-grv-item"
+            [style.cursor]="data().onOpenGrievance ? 'pointer' : null"
+            (click)="data().onOpenGrievance?.(g.id)"
+          >
+            <span class="code">{{ g.id }}</span>
+            <span class="p360-grv-subj">{{ g.subject }}</span>
+            @if (grvPriorityPill(g.priority); as p) {
+              <app-pill [tone]="p.tone">{{ p.label }}</app-pill>
+            }
+            @if (grvStatusPill(g.status); as s) {
+              <app-pill [tone]="s.tone" [dot]="true">{{ s.label }}</app-pill>
+            }
+          </div>
+        }
+      </div>
+    }
+  </app-card>
+}

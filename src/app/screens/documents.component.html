@@ -1,0 +1,229 @@
+<div>
+  <div class="doc-head">
+    <div class="page-head">
+      <h1>Documents <span class="page-info-ic" title="Every submitted document is tracked and verified. Open Review on a case to run the document check, turn on Document Intelligence, verify the extracted fields, and confirm & onboard."><app-icon name="help" [size]="13"></app-icon></span></h1>
+    </div>
+    <div class="doc-actions">
+      <app-button variant="ghost"><app-icon name="settings" [size]="15"></app-icon> Document Settings</app-button>
+      <div class="split-btn">
+        <button class="btn primary split-main"><app-icon name="plus" [size]="15"></app-icon> Upload Document</button>
+        <button class="btn primary split-caret" aria-label="More upload options"><app-icon name="chevronDown" [size]="15"></app-icon></button>
+      </div>
+    </div>
+  </div>
+
+  @if (notice(); as n) {
+    <div class="notify-bar" [style.margin-bottom]="'1rem'">
+      <app-icon name="check" [size]="14"></app-icon> {{ n }}
+      <button class="btn text sm" [style.margin-left]="'auto'" (click)="dismissNotice()">Dismiss</button>
+    </div>
+  }
+
+  <div class="doc-stats">
+    @for (c of STAT_CARDS(); track c.label) {
+      <div class="stat-card">
+        <div class="stat-top">
+          <span class="stat-ic" [style.color]="c.fg" [style.background]="c.bg"><app-icon [name]="c.icon" [size]="19"></app-icon></span>
+          <span class="stat-label">{{ c.label }}</span>
+        </div>
+        <div class="stat-value">{{ c.value }}</div>
+        <div class="stat-sub">{{ c.sub }}</div>
+      </div>
+    }
+  </div>
+
+  <div class="doc-tabsbar">
+    <div class="tabs flush">
+      @for (t of TABS(); track t.key) {
+        <button class="tab" [class.active]="tab() === t.key" (click)="setTab(t.key)">
+          {{ t.label }}
+          @if (t.count !== undefined) {
+            <span class="tab-count">{{ t.count }}</span>
+          }
+        </button>
+      }
+    </div>
+    <div class="doc-tools">
+      <label class="doc-search">
+        <app-icon name="search" [size]="15"></app-icon>
+        <input [ngModel]="query()" (ngModelChange)="onQueryChange($event)" placeholder="Search document, case, type..." />
+      </label>
+      <app-button variant="ghost" size="sm" [class.active]="showFilters()" (click)="toggleShowFilters()">
+        <app-icon name="filter" [size]="14"></app-icon> Filters
+      </app-button>
+      <app-button variant="ghost" size="sm"><app-icon name="download" [size]="14"></app-icon> Export</app-button>
+    </div>
+  </div>
+
+  @if (showFilters()) {
+    <div class="doc-filterbar">
+      <div class="doc-filter-field">
+        <span>Partner type</span>
+        <select [ngModel]="ptFilter()" (ngModelChange)="onPtFilterChange($event)">
+          <option value="all">All partner types</option>
+          <option value="distributor">Distributor</option>
+          <option value="vendor">Vendor</option>
+          <option value="logistics">Logistics</option>
+          <option value="copacker">Co-packer</option>
+        </select>
+      </div>
+      @if (filtersActive()) {
+        <app-button variant="text" size="sm" (click)="resetFilters()">Reset filters</app-button>
+      }
+    </div>
+  }
+
+  <div class="dtable-wrap">
+    <table class="dtable">
+      <thead>
+        <tr>
+          <th>Case ID</th><th>Type</th><th>Document</th><th>Claimed Value</th><th>Uploaded On</th><th>Status</th><th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (d of pageRows(); track d.id) {
+          <tr>
+            <td>
+              <span class="code">{{ d.caseCode }}</span>
+              <div class="cell-sub">{{ partnerName(d.caseCode) }}{{ onboarded().includes(d.caseCode) ? ' · onboarded' : '' }}</div>
+            </td>
+            <td>
+              <span class="type-badge"><span class="d" [style.background]="PARTNER_TYPE_COLOR[d.partnerType]"></span>{{ typeShort(d.partnerType) }}</span>
+            </td>
+            <td>
+              <div class="doc-file">
+                <span class="doc-file-ic" [style.--tint]="docTint(d.docName)"><app-icon name="documents" [size]="17"></app-icon></span>
+                <div>
+                  <div class="doc-file-name">{{ d.docName }}</div>
+                  @if (d.fileName) {
+                    <div class="doc-file-sub">{{ d.fileName }}</div>
+                  }
+                </div>
+              </div>
+            </td>
+            <td><span class="doc-claimed">{{ d.claimed ?? '—' }}</span></td>
+            <td>
+              <div class="up-date">{{ d.uploadedOn ?? '—' }}</div>
+              @if (d.uploadedAt) {
+                <div class="up-time">{{ d.uploadedAt }}</div>
+              }
+            </td>
+            <td>
+              <div class="st-cell">
+                <app-pill [tone]="statusView(d).tone" [dot]="statusView(d).dot">{{ statusView(d).label }}</app-pill>
+                <div class="st-sub">{{ statusView(d).sub }}</div>
+              </div>
+            </td>
+            <td>
+              <div class="act-cell">
+                <app-button variant="ghost" size="sm" (click)="viewPdf(d)">View</app-button>
+                <app-button variant="ghost" size="sm" (click)="openReview(d.caseCode)">Review</app-button>
+              </div>
+            </td>
+          </tr>
+        } @empty {
+          <tr><td [attr.colspan]="7"><div class="doc-empty">No documents match this view.</div></td></tr>
+        }
+      </tbody>
+    </table>
+  </div>
+
+  <div class="doc-pager">
+    <span class="pager-info">
+      @if (rows().length === 0) {
+        No documents
+      } @else {
+        Showing {{ start() + 1 }} to {{ showingTo() }} of {{ rows().length }} documents
+      }
+    </span>
+    <div class="pager-ctrls">
+      <button class="pg-btn" [disabled]="curPage() === 1" (click)="setPage(curPage() - 1)" aria-label="Previous page"><app-icon name="back" [size]="15"></app-icon></button>
+      @for (p of pageList(totalPages(), curPage()); track $index) {
+        @if (p === '…') {
+          <span class="pg-ellipsis">…</span>
+        } @else {
+          <button class="pg-num" [class.active]="p === curPage()" (click)="setPage(p)">{{ p }}</button>
+        }
+      }
+      <button class="pg-btn" [disabled]="curPage() === totalPages()" (click)="setPage(curPage() + 1)" aria-label="Next page"><app-icon name="chevronRight" [size]="15"></app-icon></button>
+      <select class="pg-size" [ngModel]="pageSize()" (ngModelChange)="onPageSizeChange($event)">
+        @for (s of PAGE_SIZES; track s) {
+          <option [value]="s">{{ s }} / page</option>
+        }
+      </select>
+    </div>
+  </div>
+
+  <!-- MDM case document check + onboard -->
+  <app-modal [open]="!!reviewCase()" [title]="reviewTitle()" size="lg" (closed)="closeReview()">
+    @if (reviewCase(); as rc) {
+      <div class="dc-di">
+        <app-toggle [on]="diOn()" (toggled)="setDiOn($event)">
+          <strong>Document Intelligence</strong> — {{ diOn() ? 'extracting & matching claimed vs actual' : 'off (verify receipt manually)' }}
+        </app-toggle>
+        @if (isOnboarded()) {
+          <app-pill tone="good" [dot]="true">Onboarded</app-pill>
+        }
+      </div>
+
+      <div class="dtable-wrap" [style.margin-top]="'0.9rem'">
+        <table class="dtable">
+          <thead>
+            <tr>
+              <th>Document</th><th>Claimed</th>
+              @if (diOn()) {
+                <th>Extracted</th>
+                <th>Match</th>
+              }
+              <th>Status</th><th>Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (d of caseDocs(); track d.id) {
+              <tr>
+                <td class="strong">{{ d.docName }}<div class="cell-sub">{{ d.fileName }}</div></td>
+                <td><span class="doc-claimed">{{ d.claimed ?? '—' }}</span></td>
+                @if (diOn()) {
+                  <td><span class="doc-claimed">{{ isExcluded(d) ? '—' : rowExtracted(d) }}</span></td>
+                  <td [class.match-ok]="!isExcluded(d) && rowMatch(d)" [class.match-bad]="!isExcluded(d) && !rowMatch(d)">{{ isExcluded(d) ? '—' : (rowMatch(d) ? '✓' : '!') }}</td>
+                }
+                <td>
+                  @if (isExcluded(d)) {
+                    <app-pill tone="neutral">On file</app-pill>
+                  } @else {
+                    <app-pill [tone]="statusView(d).tone" [dot]="statusView(d).dot">{{ statusView(d).label }}</app-pill>
+                  }
+                </td>
+                <td>
+                  @if (isExcluded(d)) {
+                    <span class="dc-excluded" [title]="BUSINESS_CAPACITY_NOTE">Not verified by policy</span>
+                  } @else if (d.status === 'verified') {
+                    <span class="dc-done">✓ {{ diOn() ? 'Verified' : 'Checked' }}</span>
+                  } @else {
+                    <app-button size="sm" (click)="verifyDoc(d.id)">{{ diOn() ? 'Mark verified' : 'Mark checked' }}</app-button>
+                  }
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+
+      <div class="dc-foot">
+        <span class="dc-progress">
+          {{ verifiedCount() }}/{{ verifiableDocs().length }} verified
+          @if (caseDocs().length > verifiableDocs().length) {
+            · {{ excludedCount() }} on file, not verified by policy
+          }
+        </span>
+        @if (isOnboarded()) {
+          <app-pill tone="good" [dot]="true">Confirmed &amp; onboarded</app-pill>
+        } @else {
+          <app-button [disabled]="!allVerified()" (click)="confirmOnboard()" [attr.title]="allVerified() ? null : 'Verify every document first'">
+            <app-icon name="check" [size]="14"></app-icon> Confirm &amp; onboard {{ partnerName(rc) }}
+          </app-button>
+        }
+      </div>
+    }
+  </app-modal>
+</div>

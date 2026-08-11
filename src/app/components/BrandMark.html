@@ -1,0 +1,10 @@
+@if (failed()) {
+  <span class="mark">A</span>
+} @else {
+  <img
+    class="{{ variant() === 'full' ? 'brand-img brand-img-full' : 'brand-img' }}"
+    [src]="variant() === 'full' ? '/brand-full.svg' : '/brand-mark.svg'"
+    alt="Acme Distribution Partner Platform"
+    (error)="onError()"
+  />
+}

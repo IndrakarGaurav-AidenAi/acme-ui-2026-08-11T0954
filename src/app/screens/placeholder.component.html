@@ -1,0 +1,15 @@
+<div>
+  <div class="page-head">
+    <h1>{{ title() }} <span class="page-info-ic" [title]="blurb()"><app-icon name="help" [size]="13"></app-icon></span></h1>
+  </div>
+  <app-card title="Planned for this module">
+    <ul [style.margin]="0" [style.padding-left]="'1.1rem'" [style.color]="'var(--ink-soft)'" [style.font-size]="'0.9rem'" [style.line-height]="1.8">
+      @for (b of bullets(); track b) {
+        <li>{{ b }}</li>
+      }
+    </ul>
+    <p [style.margin-top]="'0.9rem'" [style.font-size]="'0.8rem'" [style.color]="'var(--ink-mute)'">
+      Prototype in progress — this module is being built out. The Dashboard and Copilot are live now.
+    </p>
+  </app-card>
+</div>

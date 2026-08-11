@@ -1,0 +1,13 @@
+/* You can add global styles to this file, and also import other style files */
+
+/* app-ai-text/app-streaming-text (shared with Copilot) render .ai-para/.ai-bullets/.ai-bullet
+   markup from their own template (AiBlocks.html) — a component-scoped rule in the *using*
+   component (e.g. LoginChatWidget.css) can never match a child component's own template output,
+   so these live here globally instead, matching Copilot.css's values. */
+.ai-para { margin: 0 0 0.65rem; }
+.ai-para:last-child { margin-bottom: 0; }
+.ai-bullets { display: flex; flex-direction: column; gap: 0.4rem; margin: 0 0 0.65rem; }
+.ai-bullets:last-child { margin-bottom: 0; }
+.ai-bullet { display: flex; align-items: flex-start; gap: 0.45rem; }
+.ai-bullet-dot { flex: none; color: var(--ai-text); }
+.ai-bullet-body { flex: 1; min-width: 0; }
